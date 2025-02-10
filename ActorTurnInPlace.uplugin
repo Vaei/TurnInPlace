@@ -25,5 +25,12 @@
 			"Type": "Editor",
 			"LoadingPhase": "PreDefault"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "SimpleAnimation",
+			"Enabled": false,
+			"Optional": true
+		}
 	]
 }

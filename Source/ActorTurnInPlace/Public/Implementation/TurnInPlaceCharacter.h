@@ -83,4 +83,6 @@ public:
 	 * This is optional, and you do not need to do this for TurnInPlace to work
 	 */
 	void SuperFaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
+
+	virtual void Tick(float DeltaTime) override;
 };
