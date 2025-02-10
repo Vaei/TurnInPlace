@@ -21,13 +21,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogTurnInPlace, Log, All);
 namespace TurnInPlaceCvars
 {
 #if UE_ENABLE_DEBUG_DRAWING
-	static bool bDebugNetworkSettings = false;
-	FAutoConsoleVariableRef CVarDebugNetworkSettings(
-		TEXT("p.Turn.Debug.NetworkSettings"),
-		bDebugNetworkSettings,
-		TEXT("Print issues with network settings to log"),
-		ECVF_Default);
-
 	static bool bDebugTurnOffset = false;
 	FAutoConsoleVariableRef CVarDebugTurnOffset(
 		TEXT("p.Turn.Debug.TurnOffset"),
@@ -325,28 +318,6 @@ ETurnMethod UTurnInPlace::GetTurnMethod() const
 
 void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation)
 {
-#if UE_ENABLE_DEBUG_DRAWING
-	if (TurnInPlaceCvars::bDebugNetworkSettings)
-	{
-		if (GetNetMode() == NM_DedicatedServer && Character->HasAuthority())
-		{
-			const float RotationTime = Character->GetCharacterMovement() ? Character->GetCharacterMovement()->NetworkSimulatedSmoothRotationTime : 100.f;
-			if (RotationTime < 0.1f)
-			{
-				UE_LOG(LogTurnInPlace, Warning, TEXT("NetworkSimulatedSmoothRotationTime is { %f }, this will jitter turn in place, recommend value of 0.2. If using a lower value intentionally disable bDebugNetworkSettings CVar"), RotationTime);
-			}
-		}
-		if (GetNetMode() == NM_ListenServer && Character->HasAuthority())
-		{
-			const float RotationTime = Character->GetCharacterMovement() ? Character->GetCharacterMovement()->ListenServerNetworkSimulatedSmoothRotationTime : 100.f;
-			if (RotationTime < 0.05f)
-			{
-				UE_LOG(LogTurnInPlace, Warning, TEXT("NetworkSimulatedSmoothRotationTime is { %f }, this will jitter turn in place, recommend value of 0.12. If using a lower value intentionally disable bDebugNetworkSettings CVar"), RotationTime);
-			}
-		}
-	}
-#endif
-	
 	// Determine the correct params to use
 	FTurnInPlaceParams Params = GetParams();
 	
