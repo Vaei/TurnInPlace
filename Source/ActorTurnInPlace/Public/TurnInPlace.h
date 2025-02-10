@@ -105,14 +105,6 @@ public:
 	virtual ETurnInPlaceOverride OverrideTurnInPlace_Implementation() const;
 
 	/**
-	 * Used to tell the PhysicsRotation() to reinitialize
-	 * @return True if the character wants to reinitialize the physics rotation
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category=Turn)
-	bool WantsToReinitializePhysicsRotation() const;
-	virtual bool WantsToReinitializePhysicsRotation_Implementation() const { return false; }
-	
-	/**
 	 * TurnMode is used to determine which FTurnInPlaceAngles to use
 	 * This allows having different min and max turn angles for different modes
 	 * @return GameplayTag corresponding to the current turn mode
