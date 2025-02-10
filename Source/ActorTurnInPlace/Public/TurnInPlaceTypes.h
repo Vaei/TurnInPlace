@@ -130,7 +130,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSimulatedReplication
 };
 
 /**
- * Separated so they can be passed through easily when changing animation layers
+ * Settings for Turn In Place
  */
 USTRUCT(BlueprintType)
 struct ACTORTURNINPLACE_API FTurnInPlaceSettings
