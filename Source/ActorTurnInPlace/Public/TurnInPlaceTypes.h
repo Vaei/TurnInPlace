@@ -21,16 +21,24 @@ enum class ERotationSweepHandling : uint8
 };
 
 /**
- * Compile typical movement setups for easy selection and toggling of properties
+ * Compilation of typical movement setups for easy selection and toggling of properties
  */
 UENUM(BlueprintType)
 enum class ECharacterMovementType : uint8
 {
-	OrientToMovement		UMETA(Tooltip = "Orient towards our movement direction. Use bOrientRotationToMovement, disable bUseControllerDesiredRotation and bUseControllerRotationYaw"),
-	StrafeDesired			UMETA(Tooltip = "Strafing with smooth interpolation to direction based on RotationRate. Use bUseControllerDesiredRotation, disable bUseControllerRotationYaw and bOrientRotationToMovement"),
-	StrafeDirect 			UMETA(Tooltip = "Strafing with instant snap to direction. Use bUseControllerRotationYaw, disable bUseControllerDesiredRotation and bOrientRotationToMovement"),
+	OrientToMovement		UMETA(Tooltip = "Orient towards our movement direction. Use bOrientRotationToMovement, disable bUseControllerDesiredRotation and bUseControllerRotationYaw. Updated in UCharacterMovementComponent::PhysicsRotation()"),
+	StrafeDesired			UMETA(Tooltip = "Strafing with smooth interpolation to direction based on RotationRate. Use bUseControllerDesiredRotation, disable bUseControllerRotationYaw and bOrientRotationToMovement. Updated in UCharacterMovementComponent::PhysicsRotation()"),
+	StrafeDirect 			UMETA(Tooltip = "Strafing with instant snap to direction. Use bUseControllerRotationYaw, disable bUseControllerDesiredRotation and bOrientRotationToMovement. Updated in ACharacter::FaceRotation()"),
 };
 
+/**
+ * Two functions are responsible for the rotation of a Character:
+ * ACharacter::FaceRotation and UCharacterMovementComponent::PhysicsRotation
+ * Used to determine which is the correction function to use
+ *
+ * ECharacterMovementType::OrientToMovement and ECharacterMovementType::StrafeDesired will use UCharacterMovementComponent::PhysicsRotation()
+ * ECharacterMovementType::StrafeDirect will use ACharacter::FaceRotation()
+ */
 UENUM(BlueprintType)
 enum class ETurnMethod : uint8
 {
@@ -39,15 +47,23 @@ enum class ETurnMethod : uint8
 	PhysicsRotation		UMETA(Tooltip = "Use UCharacterMovementComponent::PhysicsRotation"),
 };
 
+/**
+ * Override the Turn In Place parameters to force turn in place to be enabled, locked, or paused.
+ */
 UENUM(BlueprintType)
 enum class ETurnInPlaceOverride : uint8
 {
-	Default				UMETA(Tooltip = "Use FTurnInPlaceParams"),
+	Default				UMETA(Tooltip = "Process Turn In Place as normal based on the FTurnInPlaceParams from the FTurnInPlaceAnimSet"),
 	ForceEnabled		UMETA(Tooltip = "Enabled regardless of FTurnInPlaceParams"),
 	ForceLocked			UMETA(ToolTip = "Locked in place and will not rotate regardless of FTurnInPlaceParams"),
 	ForcePaused			UMETA(ToolTip = "Will not accumulate any turn offset, allowing normal behaviour expected of a system without any turn in place. Useful for root motion montages")
 };
 
+/**
+ * State of the Turn In Place system
+ * Locking the character in place will prevent any rotation from occurring
+ * Pausing the character will prevent any turn offset from accumulating
+ */
 UENUM(BlueprintType)
 enum class ETurnInPlaceEnabledState : uint8
 {
@@ -56,18 +72,14 @@ enum class ETurnInPlaceEnabledState : uint8
 	Paused				UMETA(Tooltip = "Will not accumulate any turn offset, allowing normal behaviour expected of a system without any turn in place. Useful for root motion montages"),
 };
 
+/**
+ * How to select the turn animation based on the turn angle
+ */
 UENUM(BlueprintType)
 enum class ETurnAnimSelectMode : uint8
 {
 	Greater			UMETA(Tooltip = "Get the highest animation that exceeds the turn angle (at 175.f, use 135 turn instead of 180)"),
 	Nearest			UMETA(Tooltip = "Get the closest matching animation (at 175.f, use 180 turn). This can result in over-stepping the turn and subsequently turning back again especially when using 45 degree increments; recommend using a min turn angle greater than the smallest animation for better results"),
-};
-
-UENUM(BlueprintType)
-enum class EInterpOutMode : uint8
-{
-	Interpolation		UMETA(Tooltip = "Interpolate away the turn rotation while moving"),
-	AnimationCurve		UMETA(Tooltip = "Use start or pivot animation rotation curve to remove rotation"),
 };
 
 /**
@@ -99,14 +111,17 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSimulatedReplication
 		: TurnOffset(0)
 	{}
 
+	/** Compressed turn offset */
 	UPROPERTY()
 	uint16 TurnOffset;
 
+	/** Compress the turn offset from float to short */
 	void Compress(float Angle)
 	{
 		TurnOffset = FRotator::CompressAxisToShort(Angle);
 	}
 
+	/** Decompress the turn offset from short to float */
 	float Decompress() const
 	{
 		const float Decompressed = FRotator::DecompressAxisFromShort(TurnOffset);
@@ -125,7 +140,6 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSettings
 	FTurnInPlaceSettings()
 		: TurnYawCurveName("RemainingTurnYaw")
 		, TurnWeightCurveName("TurnYawWeight")
-		, StartYawCurveName("BlendRotation")
 	{}
 
 	/**
@@ -147,16 +161,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSettings
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FName TurnWeightCurveName;
-
-	/**
-	 * Name of the curve that represents how much of the turn animation's yaw should be removed when we start moving
-	 *
-	 * This curve name must be added to Inertialization node FilteredCurves in the animation graph
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
-	FName StartYawCurveName;
 };
 
+/**
+ * Minimum and maximum turn angles
+ */
 USTRUCT(BlueprintType)
 struct ACTORTURNINPLACE_API FTurnInPlaceAngles
 {
@@ -179,6 +188,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAngles
 	float MaxTurnAngle;
 };
 
+/**
+ * Turn in place parameters.
+ * Used to determine how the turn in place system behaves especially in the
+ * context of different animation states.
+ */
 USTRUCT(BlueprintType)
 struct ACTORTURNINPLACE_API FTurnInPlaceParams
 {
@@ -189,10 +203,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 		, SelectMode(ETurnAnimSelectMode::Greater)
 		, SelectOffset(0.f)
 		, StepSizes({ 60, 90, 180 })
-		, MovementInterpOutMode(EInterpOutMode::Interpolation)
-		, StrafeInterpOutMode(EInterpOutMode::Interpolation)
-		, MovementInterpOutRate(1.f)
-		, StrafeInterpOutRate(1.f)
+		, MovingInterpOutRate(1.f)
 		, bIgnoreAdditiveMontages(true)
 		, IgnoreMontageSlots({ TEXT("UpperBody"), TEXT("UpperBodyAdditive"), TEXT("UpperBodyDynAdditiveBase"), TEXT("UpperBodyDynAdditive"), TEXT("Attack") })
 	{
@@ -236,27 +247,15 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
 	TArray<int32> StepSizes;
 
-	/** How to remove turn offset when starting to move */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
-	EInterpOutMode MovementInterpOutMode;
-
-	/** How to remove turn offset when starting to move while strafing */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
-	EInterpOutMode StrafeInterpOutMode;
-
 	/**
+	 * This is only used when bUseControllerRotationYaw = true
+	 *	Not used for bOrientRotationToMovement or bUseControllerDesiredRotation
+	 *	
 	 * When we start moving we interpolate out of the turn in place at this rate
 	 * Interpolation occurs in a range of 0.0 to 1.0 so low values have a big impact on the rate
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled&&MovementInterpOutMode==EInterpOutMode::Interpolation", EditConditionHides, UIMin="0", ClampMin="0"))
-	float MovementInterpOutRate;
-
-	/**
-	 * When we start moving we interpolate out of the turn in place at this rate
-	 * Interpolation occurs in a range of 0.0 to 1.0 so low values have a big impact on the rate
-	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled&&StrafeInterpOutMode==EInterpOutMode::Interpolation", EditConditionHides, UIMin="0", ClampMin="0"))
-	float StrafeInterpOutRate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0"))
+	float MovingInterpOutRate;
 
 	/** Montages with additive tracks will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
@@ -272,7 +271,9 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 };
 
 /**
- * Animation setup data
+ * Animation set for turn in place
+ * Defines the animations to play and the parameters to use
+ * As well as the play rate to use when turning in the opposite direction or at max angle
  */
 USTRUCT(BlueprintType)
 struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
@@ -329,7 +330,6 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 	FTurnInPlaceCurveValues()
 		: RemainingTurnYaw(0.f)
 		, TurnYawWeight(0.f)
-		, BlendRotation(0.f)
 	{}
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
@@ -337,9 +337,6 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float TurnYawWeight;
-
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
-	float BlendRotation;
 };
 
 /**
@@ -357,7 +354,6 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 		, bWantsToTurn(false)
 		, bTurnRight(false)
 		, StepSize(0)
-		, bIsStrafing(false)
 		, TurnModeTag(FGameplayTag::EmptyTag)
 		, bHasValidTurnAngles(false)
 	{}
@@ -386,18 +382,19 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	int32 StepSize;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
-	bool bIsStrafing;
-
+	/** GameplayTag to determine which turn angles to use */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	FGameplayTag TurnModeTag;
-	
+
+	/** Cached result for the validity of the contained TurnAngles property */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bHasValidTurnAngles;
 
+	/** Cached TurnAngles */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	FTurnInPlaceAngles TurnAngles;
 
+	/** Cached Settings from the TurnInPlace component */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	FTurnInPlaceSettings Settings;
 };
@@ -423,19 +420,19 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float TurnOffset;
 
-	/** True if should transition to a turn in place anim state */
+	/** True if we should transition to a turn in place anim state */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bWantsToTurn;
 
-	/** True if should transition to a turn in place recovery anim state */
+	/** True if we should transition to a turn in place recovery anim state */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bWantsTurnRecovery;
 
-	/** True if should abort the start state and transition into cycle due to turn angle */
+	/** True if we should abort the start state and transition into cycle due to turn angle */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bTransitionStartToCycleFromTurn;
 
-	/** True if should abort the stop state and transition into idle because needs to turn in place */
+	/** True if we should abort the stop state and transition into idle because needs to turn in place */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bTransitionStopToIdleForTurn;
 };
