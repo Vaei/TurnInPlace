@@ -21,12 +21,15 @@ class ACTORTURNINPLACE_API UTurnInPlace : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	/** Turn in place settings */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
 	FTurnInPlaceSettings Settings;
 
+	/** Owning character that we are turning in place */
 	UPROPERTY(Transient, DuplicateTransient, BlueprintReadOnly, Category=Turn)
 	TObjectPtr<ACharacter> Character;
-	
+
+	/** AnimInstance of the owning character's Mesh */
 	UPROPERTY(Transient, DuplicateTransient, BlueprintReadOnly, Category=Turn)
 	TObjectPtr<UAnimInstance> AnimInstance;
 
@@ -34,9 +37,11 @@ public:
 	UPROPERTY()
 	bool bIsValidAnimInstance;
 
+	/** If true, will warn if the owning character's AnimInstance does not implement ITurnInPlaceAnimInterface */
 	UPROPERTY(EditDefaultsOnly, Category=Turn)
 	bool bWarnIfAnimInterfaceNotImplemented;
-	
+
+	/** Prevents spamming of the warning */
 	UPROPERTY(Transient)
 	bool bHasWarned;
 	
@@ -63,9 +68,11 @@ public:
 	UFUNCTION(BlueprintPure, Category=Turn)
 	bool IsTurningInPlace() const;
 
+	/** @return True if the character is currently moving */
 	UFUNCTION(BlueprintPure, Category=Turn)
 	bool IsCharacterMoving() const { return !IsCharacterStationary(); }
 
+	/** @return True if the character is currently stationary (not moving) */
 	UFUNCTION(BlueprintPure, Category=Turn)
 	bool IsCharacterStationary() const;
 
@@ -115,7 +122,7 @@ public:
 public:
 	/**
 	 * The current turn offset in degrees
-	 * @note Epic refer to this as RootYawOffset but that's not accurate for an actor-based turning system
+	 * @note Epic refer to this as RootYawOffset but that's not accurate for an actor-based turning system, especially because this value is the inverse of actual root yaw offset
 	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
 	float TurnOffset;
@@ -131,28 +138,32 @@ public:
 	float InterpOutAlpha;
 
 private:
+	/** Whether the last update had a valid curve value -- used to check if becoming relevant again this frame */
 	UPROPERTY(Transient)
 	bool bLastUpdateValidCurveValue;
 
 public:
-
-public:
+	/** Get the current turn in place state that determines if turn in place is enabled, paused, or locked */
 	ETurnInPlaceEnabledState GetEnabledState(const FTurnInPlaceParams& Params) const;
+
+	/** Get the current turn in place parameters */
 	FTurnInPlaceParams GetParams() const;
+
+	/** Get the current turn in place curve values that were cached by the animation graph */
 	FTurnInPlaceCurveValues GetCurveValues() const;
 
+	/** @return True if the TurnInPlace component has valid data */
 	virtual bool HasValidData() const;
 
+	/** Which method to use for turning in place. Either PhysicsRotation() or FaceRotation() */
 	virtual ETurnMethod GetTurnMethod() const;
-	
+
+	/** Process the core logic of the TurnInPlace system */
 	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation);
 	
 	/**
 	 * Must be called from your ACharacter::FaceRotation() override
-	 * Do not call Super::FaceRotation()
 	 * This updates the turn in place rotation
-	 *
-	 * Character Mesh must have an animation blueprint applied for this to function, it will exit without it
 	 *
 	 * @param NewControlRotation The NewControlRotation from ACharacter::FaceRotation()
 	 * @param DeltaTime DeltaTime from ACharacter::FaceRotation()
@@ -160,16 +171,15 @@ public:
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime);
 
 	/**
-	 * Must be called from UCharacterMovementComponent::PhysicsRotation override
-	 * Handles Start + Pivot animations that blend their own rotation with CMC to override it
-	 * @return True if PhysicsRotation() was handled and CMC should not continue
+	 * Must be called from UCharacterMovementComponent::PhysicsRotation() override
+	 * @return True if PhysicsRotation() was handled and CMC should not call Super::PhysicsRotation()
 	 */
 	virtual bool PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
 		bool bRotateToLastInputVector = false, const FVector& LastInputVector = FVector::ZeroVector);
-	
-	/** Call when a root motion montage is played so we can deinitialize */
-	void OnRootMotionIsPlaying();
 
+	/**
+	 * Used by the anim graph to request the data pertinent to the current frame and trigger the turn in place animations
+	 */
 	UFUNCTION(BlueprintCallable, Category=Turn)
 	FTurnInPlaceAnimGraphData UpdateAnimGraphData() const;
 
@@ -179,6 +189,7 @@ protected:
 
 #if ENABLE_ANIM_DEBUG
 protected:
+	/** Debug the turn in place properties if enabled */
 	void DebugRotation() const;
 #endif
 };
