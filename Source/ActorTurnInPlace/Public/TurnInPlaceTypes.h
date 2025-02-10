@@ -287,6 +287,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
 		, bMaintainMaxAnglePlayRate(true)
 	{}
 
+	/** Parameters to use when this anim set is active */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	FTurnInPlaceParams Params;
 
@@ -311,9 +312,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	bool bMaintainMaxAnglePlayRate;
 
+	/** Animations to select from when turning left */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	TArray<UAnimSequence*> LeftTurns;
 
+	/** Animations to select from when turning right */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	TArray<UAnimSequence*> RightTurns;
 };
@@ -332,9 +335,18 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 		, TurnYawWeight(0.f)
 	{}
 
+	/**
+	 * Remaining turn yaw to complete the turn
+	 * This gets deducted from the Turn Offset as the animation continues
+	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float RemainingTurnYaw;
 
+	/**
+	 * Queried to determine if we're in the actual turn vs. recovery frames
+	 * Used for transitioning from turn to recovery
+	 * And for querying if we're currently turning
+	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float TurnYawWeight;
 };
@@ -366,7 +378,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float TurnOffset;
 
-	/** True if an animation is currently being played that results in turning in place */
+	/**
+	 * True if an animation is currently being played that results in turning in place
+	 * This is based on the value of the TurnYawWeight curve
+	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bIsTurning;
 
