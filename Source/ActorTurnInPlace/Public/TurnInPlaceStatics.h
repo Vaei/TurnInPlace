@@ -11,7 +11,7 @@
 class UTurnInPlace;
 
 /**
- * Blueprint function library for TurnInPlace.
+ * Blueprint function library for TurnInPlace
  */
 UCLASS()
 class ACTORTURNINPLACE_API UTurnInPlaceStatics : public UBlueprintFunctionLibrary
@@ -26,13 +26,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(DefaultToSelf="Character"))
 	static bool SetCharacterRotation(ACharacter* Character, const FRotator& NewRotation, ETeleportType Teleport = ETeleportType::None, ERotationSweepHandling SweepHandling = ERotationSweepHandling::AutoDetect);
 
+	/**
+	 * Set the character's movement type.
+	 * This is a convenience function that sets movement properties on the character and movement component.
+	 * OrientToMovement: Orient towards our movement direction. Use bOrientRotationToMovement, disable bUseControllerDesiredRotation and bUseControllerRotationYaw. Updated in UCharacterMovementComponent::PhysicsRotation()
+	 * StrafeDesired: Strafing with smooth interpolation to direction based on RotationRate. Use bUseControllerDesiredRotation, disable bUseControllerRotationYaw and bOrientRotationToMovement. Updated in UCharacterMovementComponent::PhysicsRotation()
+	 * StrafeDirect: Strafing with instant snap to direction. Use bUseControllerRotationYaw, disable bUseControllerDesiredRotation and bOrientRotationToMovement. Updated in ACharacter::FaceRotation()
+	 * @param Character The character to set the movement type for.
+	 * @param MovementType The movement type to set.
+	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(DefaultToSelf="Character"))
 	static void SetCharacterMovementType(ACharacter* Character, ECharacterMovementType MovementType);
 	
 public:
 	/**
 	 * Calculate the turn in place play rate.
-	 * Increases the play rate when max angle is reached or we've changed directions while currently already in a turn (that is the wrong direction)
+	 * Increases the play rate when max angle is reached, or we've changed directions while currently already in a turn (that is the wrong direction)
 	 * ForceMaxAngle allows us to force the play rate to be at the max angle until we complete our current turn, this can prevent rapidly toggling play rates which occurs with a mouse
 	 * 
 	 * @param AnimGraphData The anim graph data.
@@ -44,6 +53,13 @@ public:
 	static float GetTurnInPlacePlayRate_ThreadSafe(const FTurnInPlaceAnimGraphData& AnimGraphData,
 		bool bForceTurnRateMaxAngle, bool& bHasReachedMaxAngle);
 
+	/**
+	 * Accumulates the current animation position for Sequence Evaluator to progress the turn animation
+	 * @param TurnAnimation The turn in place animation sequence
+	 * @param CurrentAnimTime The current animation time
+	 * @param DeltaTime The delta time
+	 * @param TurnPlayRate The turn play rate
+	 */
 	UFUNCTION(BlueprintPure, Category=Turn, meta=(BlueprintThreadSafe, DisplayName="Get Updated Turn In Place Anim Time (Thread Safe)"))
 	static float GetUpdatedTurnInPlaceAnimTime_ThreadSafe(const UAnimSequence* TurnAnimation, float CurrentAnimTime, float DeltaTime, float TurnPlayRate);
 	
@@ -86,6 +102,12 @@ public:
 	static FTurnInPlaceAnimGraphOutput ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGraphData& AnimGraphData,
 		bool bCanUpdateTurnInPlace, bool bIsStrafing);
 
+	/**
+	 * Extract curve values that can later be requested by the Game Thread via TurnInPlaceAnimInterface. Call from NativeThreadSafeUpdateAnimation or BlueprintThreadSafeUpdateAnimation.
+	 * @param AnimInstance The anim instance to request curve values from
+	 * @param AnimGraphData The anim graph data for this frame from UpdateTurnInPlace
+	 * @return The processed turn in place data with necessary output values for the anim graph
+	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DefaultToSelf="AnimInstance", DisplayName="Thread Safe Update Turn In Place Curve Values"))
 	static FTurnInPlaceCurveValues ThreadSafeUpdateTurnInPlaceCurveValues(const UAnimInstance* AnimInstance, const FTurnInPlaceAnimGraphData& AnimGraphData);
 };
