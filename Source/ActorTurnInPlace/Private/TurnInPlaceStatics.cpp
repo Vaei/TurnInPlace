@@ -148,7 +148,7 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPl
 }
 
 FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(
-	const FTurnInPlaceAnimGraphData& AnimGraphData,	bool bCanUpdateTurnInPlace)
+	const FTurnInPlaceAnimGraphData& AnimGraphData, bool bCanUpdateTurnInPlace, bool bIsStrafing)
 {
 	FTurnInPlaceAnimGraphOutput Output;
 	if (!bCanUpdateTurnInPlace)
@@ -164,7 +164,7 @@ FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(
 	Output.bWantsTurnRecovery = !AnimGraphData.bIsTurning;
 
 	// Locomotion anim graph transitions
-	Output.bTransitionStartToCycleFromTurn = AnimGraphData.bIsStrafing && FMath::Abs(AnimGraphData.TurnOffset) > AnimGraphData.TurnAngles.MinTurnAngle;
+	Output.bTransitionStartToCycleFromTurn = bIsStrafing && FMath::Abs(AnimGraphData.TurnOffset) > AnimGraphData.TurnAngles.MinTurnAngle;
 	Output.bTransitionStopToIdleForTurn = AnimGraphData.bIsTurning || AnimGraphData.bWantsToTurn;
 
 	return Output;

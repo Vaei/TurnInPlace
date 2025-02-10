@@ -234,9 +234,10 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 	return ETurnInPlaceOverride::Default;
 }
 
-bool UTurnInPlace::IsStrafing_Implementation() const
+FGameplayTag UTurnInPlace::GetTurnModeTag_Implementation() const
 {
-	return Character && Character->GetCharacterMovement() && !Character->GetCharacterMovement()->bOrientRotationToMovement;
+	const bool bIsStrafing = Character && Character->GetCharacterMovement() && !Character->GetCharacterMovement()->bOrientRotationToMovement;
+	return bIsStrafing ? FTurnInPlaceTags::TurnMode_Strafe : FTurnInPlaceTags::TurnMode_Movement;
 }
 
 ETurnInPlaceEnabledState UTurnInPlace::GetEnabledState(const FTurnInPlaceParams& Params) const
@@ -446,64 +447,42 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	}
 
 	// This is ACharacter::FaceRotation(), but with interpolation for when we start moving so it doesn't snap
-#if !UE_BUILD_SHIPPING
-	const FTurnInPlaceParams Params = GetParams();
-	const EInterpOutMode& InterpOutMode = IsStrafing() ? Params.StrafeInterpOutMode : Params.MovementInterpOutMode;
-	switch(InterpOutMode)
+	if (!Character->GetCharacterMovement()->bOrientRotationToMovement)
 	{
-	case EInterpOutMode::AnimationCurve:
+		if (Character->bUseControllerRotationPitch || Character->bUseControllerRotationYaw || Character->bUseControllerRotationRoll)
 		{
-			// Invalid because we're snapping to our control rotation, so we can't possibly blend into an animation
-			// This is only appropriate for PhysicsRotation()
-			ensure(false);
-		}
-		break;
-	case EInterpOutMode::Interpolation:
-#endif
-		{
-			if (!Character->GetCharacterMovement()->bOrientRotationToMovement)
+			if (!Character->bUseControllerRotationPitch)
 			{
-				if (Character->bUseControllerRotationPitch || Character->bUseControllerRotationYaw || Character->bUseControllerRotationRoll)
-				{
-					if (!Character->bUseControllerRotationPitch)
-					{
-						NewControlRotation.Pitch = CurrentRotation.Pitch;
-					}
+				NewControlRotation.Pitch = CurrentRotation.Pitch;
+			}
 
-					if (!Character->bUseControllerRotationYaw)
-					{
-						NewControlRotation.Yaw = CurrentRotation.Yaw;
-					}
-					else
-					{
-						// Interpolate away the rotation
-						const float& InterpOutRate = IsStrafing() ? Params.StrafeInterpOutRate : Params.MovementInterpOutRate;
-						InterpOutAlpha = FMath::FInterpConstantTo(InterpOutAlpha, 1.f, DeltaTime, InterpOutRate);
-						NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
-					}
+			if (!Character->bUseControllerRotationYaw)
+			{
+				NewControlRotation.Yaw = CurrentRotation.Yaw;
+			}
+			else
+			{
+				// Interpolate away the rotation
+				const FTurnInPlaceParams Params = GetParams();
+				InterpOutAlpha = FMath::FInterpConstantTo(InterpOutAlpha, 1.f, DeltaTime, Params.MovingInterpOutRate);
+				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
+			}
 
-					if (!Character->bUseControllerRotationRoll)
-					{
-						NewControlRotation.Roll = CurrentRotation.Roll;
-					}
+			if (!Character->bUseControllerRotationRoll)
+			{
+				NewControlRotation.Roll = CurrentRotation.Roll;
+			}
 
 #if ENABLE_NAN_DIAGNOSTIC
-					if (NewControlRotation.ContainsNaN())
-					{
-						logOrEnsureNanError(TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
-					}
-#endif
-
-					Character->SetActorRotation(NewControlRotation);
-				}
+			if (NewControlRotation.ContainsNaN())
+			{
+				logOrEnsureNanError(TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
 			}
-		}
-#if !UE_BUILD_SHIPPING
-		break;
-	default: ;
-	}
 #endif
 
+			Character->SetActorRotation(NewControlRotation);
+		}
+	}
 #if UE_ENABLE_DEBUG_DRAWING
 	DebugRotation();
 #endif
@@ -556,141 +535,6 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	// We've started moving, CMC can take over
 	TurnOffset = 0.f;
 	return false;
-	
-	//
-	// // As identical to UCharacterMovementComponent::PhysicsRotation() as possible, but with turn in place support
-	//
-	// FRotator DeltaRot = CharacterMovement->GetDeltaRotation(DeltaTime);
-	// DeltaRot.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): GetDeltaRotation"));
-	//
-	// FRotator DesiredRotation = CurrentRotation;
-	// if (CharacterMovement->bOrientRotationToMovement)
-	// {
-	// 	DesiredRotation = CharacterMovement->ComputeOrientToMovementRotation(CurrentRotation, DeltaTime, DeltaRot);
-	// }
-	// else if (Character->Controller && CharacterMovement->bUseControllerDesiredRotation)
-	// {
-	// 	DesiredRotation = Character->Controller->GetDesiredRotation();
-	// }
-	// else if (!Character->Controller && CharacterMovement->bRunPhysicsWithNoController && CharacterMovement->bUseControllerDesiredRotation)
-	// {
-	// 	if (AController* ControllerOwner = Cast<AController>(Character->GetOwner()))
-	// 	{
-	// 		DesiredRotation = ControllerOwner->GetDesiredRotation();
-	// 	}
-	// }
-	// else
-	// {
-	// 	return true;
-	// }
-
-// 	const bool bWantsToBeVertical = CharacterMovement->ShouldRemainVertical();
-// 	
-// 	if (bWantsToBeVertical)
-// 	{
-// 		if (CharacterMovement->HasCustomGravity())
-// 		{
-// 			FRotator GravityRelativeDesiredRotation = (CharacterMovement->GetGravityToWorldTransform() * DesiredRotation.Quaternion()).Rotator();
-// 			GravityRelativeDesiredRotation.Pitch = 0.f;
-// 			GravityRelativeDesiredRotation.Yaw = FRotator::NormalizeAxis(GravityRelativeDesiredRotation.Yaw);
-// 			GravityRelativeDesiredRotation.Roll = 0.f;
-// 			DesiredRotation = (CharacterMovement->GetWorldToGravityTransform() * GravityRelativeDesiredRotation.Quaternion()).Rotator();
-// 		}
-// 		else
-// 		{
-// 			DesiredRotation.Pitch = 0.f;
-// 			DesiredRotation.Yaw = FRotator::NormalizeAxis(DesiredRotation.Yaw);
-// 			DesiredRotation.Roll = 0.f;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		DesiredRotation.Normalize();
-// 	}
-// 	
-// 	// Accumulate a desired new rotation.
-// 	constexpr float AngleTolerance = 1e-3f;
-//
-// 	if (!CurrentRotation.Equals(DesiredRotation, AngleTolerance))
-// 	{
-// 		// If we'd be prevented from becoming vertical, override the non-yaw rotation rates to allow the character to snap upright
-// 		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("p.PreventNonVerticalOrientationBlock"));
-// 		const int32 bPreventNonVerticalOrientationBlock = CVar ? CVar->GetInt() : 1;
-// 		if (bPreventNonVerticalOrientationBlock && bWantsToBeVertical)
-// 		{
-// 			if (FMath::IsNearlyZero(DeltaRot.Pitch))
-// 			{
-// 				DeltaRot.Pitch = 360.0;
-// 			}
-// 			if (FMath::IsNearlyZero(DeltaRot.Roll))
-// 			{
-// 				DeltaRot.Roll = 360.0;
-// 			}
-// 		}
-//
-// 		if (CharacterMovement->HasCustomGravity())
-// 		{
-// 			FRotator GravityRelativeCurrentRotation = (CharacterMovement->GetGravityToWorldTransform() * CurrentRotation.Quaternion()).Rotator();
-// 			FRotator GravityRelativeDesiredRotation = (CharacterMovement->GetGravityToWorldTransform() * DesiredRotation.Quaternion()).Rotator();
-//
-// 			// PITCH
-// 			if (!FMath::IsNearlyEqual(GravityRelativeCurrentRotation.Pitch, GravityRelativeDesiredRotation.Pitch, AngleTolerance))
-// 			{
-// 				GravityRelativeDesiredRotation.Pitch = FMath::FixedTurn(GravityRelativeCurrentRotation.Pitch, GravityRelativeDesiredRotation.Pitch, DeltaRot.Pitch);
-// 			}
-//
-// 			// YAW
-// 			if (!FMath::IsNearlyEqual(GravityRelativeCurrentRotation.Yaw, GravityRelativeDesiredRotation.Yaw, AngleTolerance))
-// 			{
-// 				GravityRelativeDesiredRotation.Yaw = FMath::FixedTurn(GravityRelativeCurrentRotation.Yaw, GravityRelativeDesiredRotation.Yaw, DeltaRot.Yaw);
-// 			}
-//
-// 			// ROLL
-// 			if (!FMath::IsNearlyEqual(GravityRelativeCurrentRotation.Roll, GravityRelativeDesiredRotation.Roll, AngleTolerance))
-// 			{
-// 				GravityRelativeDesiredRotation.Roll = FMath::FixedTurn(GravityRelativeCurrentRotation.Roll, GravityRelativeDesiredRotation.Roll, DeltaRot.Roll);
-// 			}
-//
-// 			DesiredRotation = (CharacterMovement->GetWorldToGravityTransform() * GravityRelativeDesiredRotation.Quaternion()).Rotator();
-// 		}
-// 		else
-// 		{
-// 			// PITCH
-// 			if (!FMath::IsNearlyEqual(CurrentRotation.Pitch, DesiredRotation.Pitch, AngleTolerance))
-// 			{
-// 				DesiredRotation.Pitch = FMath::FixedTurn(CurrentRotation.Pitch, DesiredRotation.Pitch, DeltaRot.Pitch);
-// 			}
-//
-// 			// YAW
-// 			if (!FMath::IsNearlyEqual(CurrentRotation.Yaw, DesiredRotation.Yaw, AngleTolerance))
-// 			{
-// 				DesiredRotation.Yaw = FMath::FixedTurn(CurrentRotation.Yaw, DesiredRotation.Yaw, DeltaRot.Yaw);
-// 			}
-//
-// 			// ROLL
-// 			if (!FMath::IsNearlyEqual(CurrentRotation.Roll, DesiredRotation.Roll, AngleTolerance))
-// 			{
-// 				DesiredRotation.Roll = FMath::FixedTurn(CurrentRotation.Roll, DesiredRotation.Roll, DeltaRot.Roll);
-// 			}
-// 		}
-// 	}
-//
-// 	// if (Character->GetVelocity().IsNearlyZero())
-// 	// {
-// 	// 	TurnInPlace(CurrentRotation, DesiredRotation);
-// 	// }
-// 	// else
-// 	{
-// 		// Set the new rotation.
-// 		DesiredRotation.DiagnosticCheckNaN(TEXT("TurnInPlace::PhysicsRotation(): DesiredRotation"));
-// 		CharacterMovement->MoveUpdatedComponent( FVector::ZeroVector, DesiredRotation, /*bSweep*/ false );
-//
-// #if UE_ENABLE_DEBUG_DRAWING
-// 		DebugRotation();
-// #endif
-// 	}
-//
-// 	return true;
 }
 
 void UTurnInPlace::OnRootMotionIsPlaying()
@@ -712,7 +556,6 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	AnimGraphData.TurnOffset = TurnOffset;
 	AnimGraphData.bIsTurning = IsTurningInPlace();
 	AnimGraphData.StepSize = DetermineStepSize(Params, TurnOffset, AnimGraphData.bTurnRight);
-	AnimGraphData.bIsStrafing = IsStrafing();
 	AnimGraphData.TurnModeTag = GetTurnModeTag();
 
 	if (const FTurnInPlaceAngles* TurnAngles = Params.GetTurnAngles(GetTurnModeTag()))
@@ -778,12 +621,6 @@ int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float An
 		break;
 	default: ;
 	}
-
-	// const bool bWants = GetParams().bCanTurnInPlace && TurnInPlaceOverrideState != ETurnEnabledOverrideState::Disabled && GetParams().StepSizes.Num() > 0 && StepAngle >= GetParams().MinTurnAngle;
-	// if (bWants)
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("return %d for %f angle"), StepSize, StepAngle);
-	// }
 
 	return StepSize;
 }

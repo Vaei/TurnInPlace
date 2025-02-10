@@ -124,9 +124,7 @@ FRotator UTurnInPlaceMovement::ComputeOrientToMovementRotation(const FRotator& C
 
 void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 {
-	// We have to repeat the logic from UCharacterMovementComponent::PhysicsRotation() here to allow for the turn in place to work
-	// Mostly we do the same, but we route to UTurnInPlace::PhysicsRotation() where/when necessary
-	
+	// Repeat the checks from Super::PhysicsRotation
 	if (!(bOrientRotationToMovement || bUseControllerDesiredRotation))
 	{
 		return;
@@ -137,10 +135,13 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 		return;
 	}
 
+	// Allow the turn in place system to handle rotation if desired
 	if (UTurnInPlace* TurnInPlace = GetTurnInPlace())
 	{
+		// We will abort handling if not stationary or not rotating to the last input vector
 		if (!TurnInPlace->PhysicsRotation(this, DeltaTime, bRotateToLastInputVector, LastInputVector))
 		{
+			// Let CMC handle the rotation
 			Super::PhysicsRotation(DeltaTime);
 		}
 	}

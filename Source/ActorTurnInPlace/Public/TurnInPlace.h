@@ -104,10 +104,6 @@ public:
 	ETurnInPlaceOverride OverrideTurnInPlace() const;
 	virtual ETurnInPlaceOverride OverrideTurnInPlace_Implementation() const;
 
-	/** @return True if the character is currently using strafing movement */
-	UFUNCTION(BlueprintNativeEvent, Category=Turn)
-	bool IsStrafing() const;
-
 	/**
 	 * Used for determining if the character is currently in a pivot anim state
 	 * Only required if you blend turn rotation using EInterpOutMode::AnimationCurve instead of EInterpOutMode::Interpolation 
@@ -134,11 +130,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category=Turn, meta=(GameplayTagFilter="TurnMode."))
 	FGameplayTag GetTurnModeTag() const;
-	virtual FGameplayTag GetTurnModeTag_Implementation() const
-	{
-		return IsStrafing() ? FTurnInPlaceTags::TurnMode_Strafe : FTurnInPlaceTags::TurnMode_Movement;
-	}
-	
+
 public:
 	/**
 	 * The current turn offset in degrees
