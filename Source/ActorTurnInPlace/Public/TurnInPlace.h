@@ -135,18 +135,6 @@ private:
 	bool bLastUpdateValidCurveValue;
 
 public:
-	/** Supplied by CMC for use in the anim instance */
-	UPROPERTY(Transient, BlueprintReadOnly, Category=Turn)
-	float InitialStartAngle;
-
-	bool bStartRotationInitialized = false;
-	bool bWasInPivotState = false;
-	
-	FRotator StartRotation = FRotator::ZeroRotator;
-	FVector PrevStartAcceleration = FVector::ZeroVector;
-	FRotator TargetRotation = FRotator::ZeroRotator;
-	float StartAngle = 0.f;
-	float StartRotationRate = 0.f;
 
 public:
 	ETurnInPlaceEnabledState GetEnabledState(const FTurnInPlaceParams& Params) const;
