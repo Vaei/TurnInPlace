@@ -27,6 +27,7 @@ ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectIni
 	if (GetMesh())
 	{
 		// Server cannot turn in place with the default option (AlwaysTickPose), so we need to change it
+		// You may want to experiment with these options for games with large character counts, as it can affect performance
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
 }
@@ -45,9 +46,11 @@ void ATurnInPlaceCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 
 void ATurnInPlaceCharacter::PreInitializeComponents()
 {
+	// Find the TurnInPlace component added to the character, typically in Blueprint
 	TurnInPlace = FindComponentByClass<UTurnInPlace>();
 	if (!TurnInPlace)
 	{
+		// Log an error if the component is not found
 		const FText ErrorMsg = FText::Format(
 			NSLOCTEXT("TurnInPlaceCharacter", "InvalidTurnComp", "No turn in place component found for {0}. Setup is invalid and turn in place cannot occur."),
 			FText::FromString(GetName()));
@@ -70,6 +73,8 @@ void ATurnInPlaceCharacter::PreInitializeComponents()
 
 void ATurnInPlaceCharacter::OnRep_SimulatedTurnOffset()
 {
+	// Decompress the replicated value from short to float, and apply it to the TurnInPlace component
+	// This keeps simulated proxies in sync with the server and allows them to turn in place
 	if (GetLocalRole() == ROLE_SimulatedProxy && TurnInPlace && TurnInPlace->HasValidData())
 	{
 		TurnInPlace->TurnOffset = SimulatedTurnOffset.Decompress();
@@ -84,11 +89,13 @@ bool ATurnInPlaceCharacter::IsTurningInPlace() const
 bool ATurnInPlaceCharacter::SetCharacterRotation(const FRotator& NewRotation,
 	ETeleportType Teleport, ERotationSweepHandling SweepHandling)
 {
+	// Compensates for SetActorRotation always performing a sweep even for yaw-only rotations which cannot reasonably collide
 	return UTurnInPlaceStatics::SetCharacterRotation(this, NewRotation, Teleport, SweepHandling);
 }
 
 bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
+	// Allow the turn in place system to handle rotation if desired
 	if (TurnInPlace && TurnInPlace->HasValidData())
 	{
 		// LastInputVector won't set from Velocity following root motion, so we need to set it here
@@ -114,16 +121,21 @@ bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, flo
 				MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedTurnOffset, this);
 			}
 		}
-		
+
+		// We handled the rotation
 		return true;
 	}
+
+	// We did not handle rotation
 	return false;
 }
 
 void ATurnInPlaceCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
+	// Allow the turn in place system to handle rotation if desired
 	if (!TurnInPlaceRotation(NewControlRotation, DeltaTime))
 	{
+		// Use SetCharacterRotation instead of SetActorRotation
 		SuperFaceRotation(NewControlRotation, DeltaTime);
 	}
 }

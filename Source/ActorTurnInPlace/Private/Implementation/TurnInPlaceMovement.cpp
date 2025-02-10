@@ -27,12 +27,14 @@ void UTurnInPlaceMovement::SetUpdatedComponent(USceneComponent* NewUpdatedCompon
 
 UTurnInPlace* UTurnInPlaceMovement::GetTurnInPlace() const
 {
+	// Return the TurnInPlace component from the owning character, but only if it has valid data
 	return TurnCharacterOwner && TurnCharacterOwner->TurnInPlace && TurnCharacterOwner->TurnInPlace->HasValidData() ?
 		TurnCharacterOwner->TurnInPlace : nullptr;
 }
 
 void UTurnInPlaceMovement::UpdateLastInputVector()
 {
+	// If we're orienting to movement, we need to update the LastInputVector
 	if (bOrientRotationToMovement)
 	{
 		if (CharacterOwner->HasAnyRootMotion() || CharacterOwner->GetCurrentMontage() != nullptr)
@@ -44,13 +46,14 @@ void UTurnInPlaceMovement::UpdateLastInputVector()
 		{
 			// Set input vector - additional logic required to prevent gamepad thumbstick from bouncing back past the center
 			// line resulting in the character flipping - known mechanical fault with xbox one elite controller
-			const bool bSetInputFromAcceleration = !FMath::IsNearlyZero(ComputeAnalogInputModifier(), 0.5f);
-			const bool bSetInputFromVelocity = !Velocity.IsNearlyZero(GetMaxSpeed() * 0.05f) && GetWorld()->GetTimeSeconds() >= LastRootMotionTime + 0.25f;
-			if (bSetInputFromAcceleration)
+			const bool bRootMotionNotRecentlyApplied = GetWorld()->TimeSince(LastRootMotionTime) >= 0.25f;  // Grace period for root motion to stop affecting velocity significantly
+			const bool bFromAcceleration = !FMath::IsNearlyZero(ComputeAnalogInputModifier(), 0.5f);
+			const bool bFromVelocity = !Velocity.IsNearlyZero(GetMaxSpeed() * 0.05f) && bRootMotionNotRecentlyApplied;
+			if (bFromAcceleration)
 			{
 				LastInputVector = Acceleration.GetSafeNormal();
 			}
-			else if (bSetInputFromVelocity)
+			else if (bFromVelocity)
 			{
 				LastInputVector = Velocity.GetSafeNormal();
 			}
@@ -62,6 +65,7 @@ void UTurnInPlaceMovement::UpdateLastInputVector()
 	}
 	else
 	{
+		// Set LastInputVector to the component forward vector if we're not orienting to movement
 		LastInputVector = UpdatedComponent->GetForwardVector();
 	}
 }
@@ -76,11 +80,13 @@ void UTurnInPlaceMovement::ApplyRootMotionToVelocity(float DeltaTime)
 
 FRotator UTurnInPlaceMovement::GetRotationRate() const
 {
+	// If we're not moving, we can use the idle rotation rate
 	if (IsMovingOnGround() && Velocity.IsNearlyZero())
 	{
 		return RotationRateIdle;
 	}
 
+	// Use the default rotation rate when moving
 	return RotationRate;
 }
 
