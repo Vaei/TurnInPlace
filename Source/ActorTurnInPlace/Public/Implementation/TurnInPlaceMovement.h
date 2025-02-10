@@ -58,10 +58,5 @@ public:
 	virtual FRotator GetDeltaRotation(float DeltaTime) const override;
 	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const override;
 
-	/** Override if a pivot state is available */
-	virtual bool IsPivoting() const { return false; }
-
-	virtual bool ShouldReinitializeTurnRotation() const { return false; }
-	
 	virtual void PhysicsRotation(float DeltaTime) override;
 };

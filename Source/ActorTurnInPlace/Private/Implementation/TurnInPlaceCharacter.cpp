@@ -97,11 +97,11 @@ bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, flo
 			TurnInPlaceMovement->LastRootMotionTime = GetWorld()->GetTimeSeconds();
 		}
 
+		// Cache the last turn offset for replication comparison
 		const float LastTurnOffset = TurnInPlace->TurnOffset;
 
 		// This is where the core logic of the TurnInPlace system is processed
-		const FVector ForwardVector = TurnInPlaceMovement ? TurnInPlaceMovement->LastInputVector : GetActorForwardVector();
-		TurnInPlace->FaceRotation(NewControlRotation, ForwardVector, DeltaTime);
+		TurnInPlace->FaceRotation(NewControlRotation, DeltaTime);
 
 		// Compress result and replicate to simulated proxy
 		if (HasAuthority() && GetNetMode() != NM_Standalone)

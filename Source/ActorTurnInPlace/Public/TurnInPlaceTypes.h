@@ -20,6 +20,17 @@ enum class ERotationSweepHandling : uint8
 	NeverSweep			UMETA(Tooltip = "Never perform a sweep when rotating"),
 };
 
+/**
+ * Compile typical movement setups for easy selection and toggling of properties
+ */
+UENUM(BlueprintType)
+enum class ECharacterMovementType : uint8
+{
+	OrientToMovement		UMETA(Tooltip = "Orient towards our movement direction. Use bOrientRotationToMovement, disable bUseControllerDesiredRotation and bUseControllerRotationYaw"),
+	StrafeDesired			UMETA(Tooltip = "Strafing with smooth interpolation to direction based on RotationRate. Use bUseControllerDesiredRotation, disable bUseControllerRotationYaw and bOrientRotationToMovement"),
+	StrafeDirect 			UMETA(Tooltip = "Strafing with instant snap to direction. Use bUseControllerRotationYaw, disable bUseControllerDesiredRotation and bOrientRotationToMovement"),
+};
+
 UENUM(BlueprintType)
 enum class ETurnMethod : uint8
 {
