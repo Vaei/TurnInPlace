@@ -139,15 +139,13 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 
 	if (UTurnInPlace* TurnInPlace = GetTurnInPlace())
 	{
-		FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
-		if (TurnInPlace->PhysicsRotation(DeltaTime, CurrentRotation, Acceleration, Velocity,
-			bOrientRotationToMovement, bUseControllerDesiredRotation,
-			TurnInPlace->GetCurveValues().BlendRotation, IsPivoting()))
+		if (!TurnInPlace->PhysicsRotation(this, DeltaTime, bRotateToLastInputVector, LastInputVector))
 		{
-			// Handled by turn in place, so we're done
-			return;
+			Super::PhysicsRotation(DeltaTime);
 		}
 	}
-
-	Super::PhysicsRotation(DeltaTime);
+	else
+	{
+		Super::PhysicsRotation(DeltaTime);
+	}
 }

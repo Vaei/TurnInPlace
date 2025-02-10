@@ -63,6 +63,12 @@ public:
 	UFUNCTION(BlueprintPure, Category=Turn)
 	bool IsTurningInPlace() const;
 
+	UFUNCTION(BlueprintPure, Category=Turn)
+	bool IsCharacterMoving() const { return !IsCharacterStationary(); }
+
+	UFUNCTION(BlueprintPure, Category=Turn)
+	bool IsCharacterStationary() const;
+
 	/**
 	 * Get the current root motion montage that is playing
 	 * @return The current root motion montage
@@ -101,6 +107,25 @@ public:
 	/** @return True if the character is currently using strafing movement */
 	UFUNCTION(BlueprintNativeEvent, Category=Turn)
 	bool IsStrafing() const;
+
+	/**
+	 * Used for determining if the character is currently in a pivot anim state
+	 * Only required if you blend turn rotation using EInterpOutMode::AnimationCurve instead of EInterpOutMode::Interpolation 
+	 * @see UTurnInPlace::PhysicsRotation()
+	 * @see EInterpOutMode
+	 * @return True if the character is currently in a pivot anim state
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	bool IsPivoting() const;
+	virtual bool IsPivoting_Implementation() const { return false; }
+
+	/**
+	 * Used to tell the PhysicsRotation() to reinitialize
+	 * @return True if the character wants to reinitialize the physics rotation
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	bool WantsToReinitializePhysicsRotation() const;
+	virtual bool WantsToReinitializePhysicsRotation_Implementation() const { return false; }
 	
 	/**
 	 * TurnMode is used to determine which FTurnInPlaceAngles to use
@@ -159,7 +184,7 @@ public:
 
 	virtual ETurnMethod GetTurnMethod() const;
 	
-	virtual void TurnInPlace();
+	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation);
 	
 	/**
 	 * Must be called from your ACharacter::FaceRotation() override
@@ -169,18 +194,17 @@ public:
 	 * Character Mesh must have an animation blueprint applied for this to function, it will exit without it
 	 *
 	 * @param NewControlRotation The NewControlRotation from ACharacter::FaceRotation()
-	 * @param ForwardVector This is the direction the turn in place will face when using UCharacterMovementComponent::bOrientRotationToMovement. The last Acceleration value from UCharacterMovementComponent::Acceleration that was not zero is the expected input. You can pass FVector::ZeroVector if you're not using UCharacterMovementComponent::bOrientRotationToMovement or if you are disabling turn in place during bOrientRotationToMovement
 	 * @param DeltaTime DeltaTime from ACharacter::FaceRotation()
 	 */
-	virtual void FaceRotation(FRotator NewControlRotation, const FVector& ForwardVector, float DeltaTime);
+	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime);
 
 	/**
 	 * Must be called from UCharacterMovementComponent::PhysicsRotation override
 	 * Handles Start + Pivot animations that blend their own rotation with CMC to override it
-	 * @return true if rotation was handled here, and CMC should not handle it this frame
+	 * @return True if PhysicsRotation() was handled and CMC should not continue
 	 */
 	virtual bool PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
-		float InCurveValue = 0.f, bool bIsPivoting = false, bool bForceReInit = false);
+		bool bRotateToLastInputVector = false, const FVector& LastInputVector = FVector::ZeroVector);
 	
 	/** Call when a root motion montage is played so we can deinitialize */
 	void OnRootMotionIsPlaying();

@@ -6,6 +6,7 @@
 #include "TurnInPlace.h"
 #include "TurnInPlaceTypes.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceStatics)
@@ -42,6 +43,31 @@ bool UTurnInPlaceStatics::SetCharacterRotation(ACharacter* Character, const FRot
 	}
 
 	return false;
+}
+
+void UTurnInPlaceStatics::SetCharacterMovementType(ACharacter* Character, ECharacterMovementType MovementType)
+{
+	if (IsValid(Character) && Character->GetCharacterMovement())
+	{
+		switch (MovementType)
+		{
+		case ECharacterMovementType::OrientToMovement:
+			Character->bUseControllerRotationYaw = false;
+		    Character->GetCharacterMovement()->bOrientRotationToMovement = true;
+			Character->GetCharacterMovement()->bUseControllerDesiredRotation = false;
+			break;
+		case ECharacterMovementType::StrafeDesired:
+			Character->bUseControllerRotationYaw = false;
+			Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+			Character->GetCharacterMovement()->bUseControllerDesiredRotation = true;
+			break;
+		case ECharacterMovementType::StrafeDirect:
+			Character->bUseControllerRotationYaw = true;
+			Character->GetCharacterMovement()->bOrientRotationToMovement = false;
+			Character->GetCharacterMovement()->bUseControllerDesiredRotation = false;
+			break;
+		}
+	}
 }
 
 float UTurnInPlaceStatics::GetTurnInPlacePlayRate_ThreadSafe(const FTurnInPlaceAnimGraphData& AnimGraphData,

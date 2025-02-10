@@ -25,6 +25,9 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(DefaultToSelf="Character"))
 	static bool SetCharacterRotation(ACharacter* Character, const FRotator& NewRotation, ETeleportType Teleport = ETeleportType::None, ERotationSweepHandling SweepHandling = ERotationSweepHandling::AutoDetect);
+
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(DefaultToSelf="Character"))
+	static void SetCharacterMovementType(ACharacter* Character, ECharacterMovementType MovementType);
 	
 public:
 	/**

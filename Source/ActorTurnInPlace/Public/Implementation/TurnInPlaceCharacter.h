@@ -40,7 +40,7 @@ public:
 
 	UFUNCTION()
 	void OnRep_SimulatedTurnOffset();
-	
+
 public:
 	/**
 	 * Character is currently turning in place if the TurnYawWeight curve is not 0
