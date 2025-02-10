@@ -21,13 +21,24 @@ class ACTORTURNINPLACE_API ATurnInPlaceCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
+	/**
+	 * Turn in place component
+	 * We do not create it here, but use FindComponentByClass() in PreInitializeComponents() that it can be added to
+	 * the character in Blueprint instead to allow for Blueprint derived components
+	 */
 	UPROPERTY()
 	TObjectPtr<UTurnInPlace> TurnInPlace;
-	
+
+	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(BlueprintReadOnly, Category=Character)
 	TObjectPtr<UTurnInPlaceMovement> TurnInPlaceMovement;
 
 protected:
+	/**
+	 * Server replicates to simulated proxies by compressing TurnInPlace::TurnOffset from float to uint16 (short)
+	 * Simulated proxies decompress the value to float and apply it to the TurnInPlace component
+	 * This keeps simulated proxies in sync with the server and allows them to turn in place
+	 */
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTurnOffset)
 	FTurnInPlaceSimulatedReplication SimulatedTurnOffset;
 	
@@ -56,8 +67,20 @@ public:
 	bool SetCharacterRotation(const FRotator& NewRotation, ETeleportType Teleport = ETeleportType::None,
 		ERotationSweepHandling SweepHandling = ERotationSweepHandling::AutoDetect);
 
-	/** @return True if FaceRotation is handled */
+	/**
+	 * Called by ACharacter::FaceRotation() to handle turn in place rotation
+	 * @return True if FaceRotation is handled
+	 */
 	virtual bool TurnInPlaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
+
+	/**
+	 * Overrides ACharacter::FaceRotation() to handle turn in place rotation
+	 */
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
+
+	/**
+	 * Calls Super::FaceRotation() to use SetCharacterRotation instead of SetActorRotation
+	 * This is optional, and you do not need to do this for TurnInPlace to work
+	 */
 	void SuperFaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
 };
