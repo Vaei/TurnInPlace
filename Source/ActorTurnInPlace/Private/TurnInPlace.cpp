@@ -67,7 +67,6 @@ UTurnInPlace::UTurnInPlace(const FObjectInitializer& ObjectInitializer)
 	, CurveValue(0)
 	, InterpOutAlpha(0)
 	, bLastUpdateValidCurveValue(false)
-	, InitialStartAngle(0)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
@@ -535,11 +534,6 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	// We've started moving, CMC can take over
 	TurnOffset = 0.f;
 	return false;
-}
-
-void UTurnInPlace::OnRootMotionIsPlaying()
-{
-	bStartRotationInitialized = false;
 }
 
 FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
