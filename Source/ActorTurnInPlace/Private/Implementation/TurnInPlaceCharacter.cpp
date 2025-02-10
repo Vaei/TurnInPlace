@@ -175,3 +175,15 @@ void ATurnInPlaceCharacter::SuperFaceRotation(FRotator NewControlRotation, float
 		SetCharacterRotation(NewControlRotation);
 	}
 }
+
+void ATurnInPlaceCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+#if UE_ENABLE_DEBUG_DRAWING
+	if (TurnInPlace && TurnInPlace->HasValidData())
+	{
+		TurnInPlace->DebugServerAnim();
+	}
+#endif
+}

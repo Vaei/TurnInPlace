@@ -14,9 +14,15 @@
 #include "Framework/Notifications/NotificationManager.h"
 #endif
 
+#if WITH_SIMPLE_ANIMATION && UE_ENABLE_DEBUG_DRAWING
+#include "SimpleAnimLib.h"
+#endif
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlace)
 
 DEFINE_LOG_CATEGORY_STATIC(LogTurnInPlace, Log, All);
+
+#define LOCTEXT_NAMESPACE "TurnInPlaceComponent"
 
 namespace TurnInPlaceCvars
 {
@@ -141,7 +147,7 @@ void UTurnInPlace::OnAnimInstanceChanged()
 			// Log a warning if the AnimInstance does not implement the TurnInPlaceAnimInterface
 			bHasWarned = true;
 			const FText ErrorMsg = FText::Format(
-				NSLOCTEXT("TurnInPlaceComponent", "InvalidAnimInstance", "The anim instance {0} assigned to {1} on {2} does not implement the TurnInPlaceAnimInterface."),
+				LOCTEXT("InvalidAnimInstance", "The anim instance {0} assigned to {1} on {2} does not implement the TurnInPlaceAnimInterface."),
 				FText::FromString(AnimInstance->GetClass()->GetName()), FText::FromString(GetMesh()->GetName()), FText::FromString(GetName()));
 #if WITH_EDITOR
 			// Show a notification in the editor
@@ -635,13 +641,14 @@ int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float An
 }
 
 #if UE_ENABLE_DEBUG_DRAWING
+static bool bHasWarnedSimpleAnimation = false;
 void UTurnInPlace::DebugRotation() const
 {
 	if (!IsValid(Character))
 	{
 		return;
 	}
-	
+
 	// Turn Offset Screen Text
 	if (TurnInPlaceCvars::bDebugTurnOffset && GEngine)
 	{
@@ -680,4 +687,37 @@ void UTurnInPlace::DebugRotation() const
 			40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
 	}
 }
+
+void UTurnInPlace::DebugServerAnim() const
+{
+	// Draw Server's physics bodies
+	if (bDrawServerAnimation && Character->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
+	{
+#if WITH_SIMPLE_ANIMATION
+		USimpleAnimLib::DrawPawnDebugPhysicsBodies(Character, GetMesh(), true, false, false);
+#else
+		if (!bHasWarnedSimpleAnimation)
+		{
+			bHasWarnedSimpleAnimation = true;
+			const FText ErrorMsg = FText::Format(
+				LOCTEXT("NoSimpleAnimPlugin", "{0} is trying to draw server animation but SimpleAnimation plugin was not found. Disable UTurnInPlace::bDrawServerAnimation"),
+				FText::FromString(GetName()));
+#if WITH_EDITOR
+			// Show a notification in the editor
+			FNotificationInfo Info(ErrorMsg);
+			Info.ExpireDuration = 6.f;
+			FSlateNotificationManager::Get().AddNotification(Info);
+
+			// Log the error to message log
+			FMessageLog("PIE").Error(ErrorMsg);
+#else
+			// Log the error to the output log
+			UE_LOG(LogTurnInPlaceCharacter, Error, TEXT("%s"), *ErrorMsg.ToString());
 #endif
+		}
+#endif
+	}
+}
+#endif
+
+#undef LOCTEXT_NAMESPACE
