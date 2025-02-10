@@ -177,7 +177,6 @@ FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveVal
 	// Turn anim graph curve values
 	CurveValues.RemainingTurnYaw = AnimInstance->GetCurveValue(AnimGraphData.Settings.TurnYawCurveName);
 	CurveValues.TurnYawWeight = AnimInstance->GetCurveValue(AnimGraphData.Settings.TurnWeightCurveName);
-	CurveValues.BlendRotation = AnimInstance->GetCurveValue(AnimGraphData.Settings.StartYawCurveName);
 
 	return CurveValues;
 }
