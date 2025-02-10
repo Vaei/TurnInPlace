@@ -68,6 +68,7 @@ UTurnInPlace::UTurnInPlace(const FObjectInitializer& ObjectInitializer)
 	, InterpOutAlpha(0)
 	, bLastUpdateValidCurveValue(false)
 {
+	// We don't need to tick
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
@@ -96,6 +97,7 @@ void UTurnInPlace::InitializeComponent()
 
 void UTurnInPlace::SetUpdatedCharacter()
 {
+	// Cache the owning character
 	Character = IsValid(GetOwner()) ? Cast<ACharacter>(GetOwner()) : nullptr;
 }
 
@@ -103,6 +105,7 @@ void UTurnInPlace::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Bind to the Mesh event to detect when the AnimInstance changes so we can recache it and check if it implements UTurnInPlaceAnimInterface
 	if (ensureAlways(IsValid(Character)))
 	{
 		if (GetMesh())
@@ -119,6 +122,7 @@ void UTurnInPlace::BeginPlay()
 
 void UTurnInPlace::DestroyComponent(bool bPromoteChildren)
 {
+	// Unbind from the Mesh's AnimInstance event
 	if (GetMesh())
 	{
 		if (GetMesh()->OnAnimInitialized.IsBound())
@@ -132,13 +136,16 @@ void UTurnInPlace::DestroyComponent(bool bPromoteChildren)
 
 void UTurnInPlace::OnAnimInstanceChanged()
 {
+	// Cache the AnimInstance and check if it implements UTurnInPlaceAnimInterface
 	AnimInstance = GetMesh()->GetAnimInstance();
 	bIsValidAnimInstance = false;
 	if (IsValid(AnimInstance))
 	{
+		// Check if the AnimInstance implements the TurnInPlaceAnimInterface and cache the result so we don't have to check every frame
 		bIsValidAnimInstance = AnimInstance->Implements<UTurnInPlaceAnimInterface>();
 		if (!bIsValidAnimInstance && bWarnIfAnimInterfaceNotImplemented && !bHasWarned)
 		{
+			// Log a warning if the AnimInstance does not implement the TurnInPlaceAnimInterface
 			bHasWarned = true;
 			const FText ErrorMsg = FText::Format(
 				NSLOCTEXT("TurnInPlaceComponent", "InvalidAnimInstance", "The anim instance {0} assigned to {1} on {2} does not implement the TurnInPlaceAnimInterface."),
@@ -161,6 +168,7 @@ void UTurnInPlace::OnAnimInstanceChanged()
 
 bool UTurnInPlace::IsTurningInPlace() const
 {
+	// We are turning in place if the weight curve is not 0
 	return HasValidData() && !FMath::IsNearlyZero(GetCurveValues().TurnYawWeight, KINDA_SMALL_NUMBER);
 }
 
@@ -176,8 +184,10 @@ bool UTurnInPlace::IsCharacterStationary() const
 
 UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 {
+	// Check if the character is playing a networked root motion montage
 	if (bIsValidAnimInstance && Character && Character->IsPlayingNetworkedRootMotionMontage())
 	{
+		// Get the root motion montage instance and return the montage
 		if (const FAnimMontageInstance* MontageInstance = AnimInstance->GetRootMotionMontageInstance())
 		{
 			return MontageInstance->Montage;
@@ -224,6 +234,7 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 	// We want to pause turn in place when using root motion montages
 	if (UAnimMontage* Montage = GetCurrentNetworkRootMotionMontage())
 	{
+		// But we don't want to pause turn in place if the montage is ignored by our current params
 		if (ShouldIgnoreRootMotionMontage(Montage))
 		{
 			return ETurnInPlaceOverride::ForcePaused;
@@ -235,6 +246,7 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 
 FGameplayTag UTurnInPlace::GetTurnModeTag_Implementation() const
 {
+	// Determine the turn mode tag based on the character's movement settings
 	const bool bIsStrafing = Character && Character->GetCharacterMovement() && !Character->GetCharacterMovement()->bOrientRotationToMovement;
 	return bIsStrafing ? FTurnInPlaceTags::TurnMode_Strafe : FTurnInPlaceTags::TurnMode_Movement;
 }
@@ -245,7 +257,9 @@ ETurnInPlaceEnabledState UTurnInPlace::GetEnabledState(const FTurnInPlaceParams&
 	{
 		return ETurnInPlaceEnabledState::Locked;
 	}
-	
+
+	// Determine the enabled state of turn in place
+	// This allows us to lock or pause turn in place, or force it to be enabled based on runtime conditions
 	ETurnInPlaceEnabledState State = Params.State;
 	ETurnInPlaceOverride OverrideState = OverrideTurnInPlace();
 	switch (OverrideState)
@@ -264,7 +278,8 @@ FTurnInPlaceParams UTurnInPlace::GetParams() const
 	{
 		return {};
 	}
-	
+
+	// Get the current turn in place parameters from the animation blueprint
 	FTurnInPlaceAnimSet AnimSet = ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
 	return AnimSet.Params;
 }
@@ -275,12 +290,14 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 	{
 		return {};
 	}
-	
+
+	// Get the current turn in place curve values from the animation blueprint
 	return ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceCurveValues(AnimInstance);
 }
 
 bool UTurnInPlace::HasValidData() const
 {
+	// We need a valid AnimInstance and Character to proceed, and the anim instance must implement the TurnInPlaceAnimInterface
 	return bIsValidAnimInstance && IsValid(Character) && !Character->IsPendingKillPending() && Character->GetCharacterMovement();
 }
 
@@ -347,9 +364,9 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 
 	// Reset it here, because we are not appending, and this accounts for velocity being applied (no turn in place)
 	TurnOffset = 0.f;
-
 	InterpOutAlpha = 0.f;
-	
+
+	// If turn in place is paused, we can't accumulate any turn offset
 	if (State != ETurnInPlaceEnabledState::Paused)
 	{
 		TurnOffset = (DesiredRotation - CurrentRotation).GetNormalized().Yaw;
@@ -404,16 +421,22 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	{
 		UE_LOG(LogTurnInPlace, Warning, TEXT("No TurnAngles found for TurnModeTag: %s"), *TurnModeTag.ToString());
 	}
+
+	// Clamp the turn offset to the max angle if provided
 	const float MaxTurnAngle = TurnAngles ? TurnAngles->MaxTurnAngle : 0.f;
 	if (MaxTurnAngle > 0.f && FMath::Abs(TurnOffset) > MaxTurnAngle)
 	{
 		TurnOffset = FMath::ClampAngle(TurnOffset, -MaxTurnAngle, MaxTurnAngle);
 	}
 
+	// Normalize the turn offset to -180 to 180
 	const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnOffset + CurrentRotation.Yaw));
+
+	// Apply the turn offset to the character
 	Character->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
 	
 #if !UE_BUILD_SHIPPING
+	// Log the turn in place values for debugging if set to verbose
 	const FString NetRole = GetNetMode() == NM_Standalone ? TEXT("") : Character->GetLocalRole() == ROLE_Authority ? TEXT("[ Server ]") : TEXT("[ Client ]");
 	UE_LOG(LogTurnInPlace, Verbose, TEXT("%s cv %.2f  lcv %.2f  offset %.2f"), *NetRole, CurveValue, LastCurveValue, TurnOffset);
 #endif
@@ -425,6 +448,7 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 
 void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
+	// We only want to handle rotation if we are using FaceRotation() and not PhysicsRotation() based on our movement settings
 	if (GetTurnMethod() != ETurnMethod::FaceRotation)
 	{
 		return;
@@ -437,8 +461,11 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		CurveValue = 0.f;
 		return;
 	}
-	
+
+	// Cache the current rotation
 	const FRotator CurrentRotation = Character->GetActorRotation();
+
+	// If the character is stationary, we can turn in place
 	if (IsCharacterStationary())
 	{
 		TurnInPlace(CurrentRotation, NewControlRotation);
@@ -461,7 +488,7 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			}
 			else
 			{
-				// Interpolate away the rotation
+				// Interpolate away the rotation because we are moving
 				const FTurnInPlaceParams Params = GetParams();
 				InterpOutAlpha = FMath::FInterpConstantTo(InterpOutAlpha, 1.f, DeltaTime, Params.MovingInterpOutRate);
 				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
@@ -490,6 +517,7 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
 	bool bRotateToLastInputVector, const FVector& LastInputVector)
 {
+	// We only want to handle rotation if we are using PhysicsRotation() and not FaceRotation() based on our movement settings
 	if (GetTurnMethod() != ETurnMethod::PhysicsRotation)
 	{
 		return false;
@@ -502,25 +530,31 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 		CurveValue = 0.f;
 		return true;
 	}
-	
+
+	// Cache the updated component and current rotation
 	USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
 	FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
 	CurrentRotation.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): CurrentRotation"));
 
+	// If the character is stationary, we can turn in place
 	if (IsCharacterStationary())
 	{
 		if (bRotateToLastInputVector && CharacterMovement->bOrientRotationToMovement)
 		{
+			// Rotate towards the last input vector
 			TurnInPlace(CurrentRotation, LastInputVector.Rotation());
 		}
 		else if (CharacterMovement->bUseControllerDesiredRotation && Character->Controller)
 		{
+			// Rotate towards the controller's desired rotation
 			TurnInPlace(CurrentRotation, Character->Controller->GetDesiredRotation());
 		}
 		else if (!Character->Controller && CharacterMovement->bRunPhysicsWithNoController && CharacterMovement->bUseControllerDesiredRotation)
 		{
+			// We have no controller, but we can try to find one
 			if (AController* ControllerOwner = Cast<AController>(Character->GetOwner()))
 			{
+				// Rotate towards the controller's desired rotation
 				TurnInPlace(CurrentRotation, ControllerOwner->GetDesiredRotation());
 			}
 		}
@@ -528,11 +562,11 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	}
 
 #if UE_ENABLE_DEBUG_DRAWING
-		DebugRotation();
+	DebugRotation();
 #endif
 	
-	// We've started moving, CMC can take over
-	TurnOffset = 0.f;
+	// We've started moving, CMC can take over by calling Super::PhysicsRotation()
+	TurnOffset = 0.f;  // Cull this when we start moving, it will be recalculated when we stop moving
 	return false;
 }
 
@@ -543,15 +577,21 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	{
 		return AnimGraphData;
 	}
+
+	// Get the current turn in place anim set & parameters from the animation blueprint
 	AnimGraphData.AnimSet = ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
 	FTurnInPlaceParams Params = AnimGraphData.AnimSet.Params;
+
+	// Determine the enabled state of turn in place
 	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 
+	// Retrieve parameters for the current frame required by the animation graph
 	AnimGraphData.TurnOffset = TurnOffset;
 	AnimGraphData.bIsTurning = IsTurningInPlace();
 	AnimGraphData.StepSize = DetermineStepSize(Params, TurnOffset, AnimGraphData.bTurnRight);
 	AnimGraphData.TurnModeTag = GetTurnModeTag();
 
+	// Determine if we have valid turn angles for the current turn mode tag and cache the result
 	if (const FTurnInPlaceAngles* TurnAngles = Params.GetTurnAngles(GetTurnModeTag()))
 	{
 		AnimGraphData.TurnAngles = *TurnAngles;
@@ -570,18 +610,22 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 
 int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight)
 {
+	// Cache the turn angle and step angle
 	const float TurnAngle = Angle;
-	// const float TurnAngle = FRotator::NormalizeAxis(Angle);
 	const float StepAngle = FMath::Abs(TurnAngle) + Params.SelectOffset;
+
+	// Determine if we are turning right or left
 	bTurnRight = TurnAngle > 0.f;
 
-	int32 StepSize = 0;
-
+	// No step sizes, return 0
 	if (Params.StepSizes.Num() == 0)
 	{
-		return StepSize;
+		ensureMsgf(false, TEXT("No StepSizes found in TurnInPlaceParams"));
+		return 0;
 	}
 
+	// Determine the step size based on the select mode
+	int32 StepSize = 0;
 	switch(Params.SelectMode)
 	{
 	case ETurnAnimSelectMode::Nearest:
