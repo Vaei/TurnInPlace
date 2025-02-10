@@ -18,6 +18,9 @@
 #include "SimpleAnimLib.h"
 #endif
 
+#include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
+
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlace)
 
 DEFINE_LOG_CATEGORY_STATIC(LogTurnInPlace, Log, All);
@@ -70,6 +73,56 @@ UTurnInPlace::UTurnInPlace(const FObjectInitializer& ObjectInitializer)
 	// We don't need to tick
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+	
+	// Replicate the turn offset to simulated proxies
+	SetIsReplicatedByDefault(true);
+}
+
+void UTurnInPlace::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	// Push Model
+	FDoRepLifetimeParams SharedParams;
+	SharedParams.bIsPushBased = true;
+	SharedParams.Condition = COND_SimulatedOnly;
+
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedTurnOffset, SharedParams);
+}
+
+ENetRole UTurnInPlace::GetLocalRole() const
+{
+	return IsValid(Character) ? Character->GetLocalRole() : ROLE_None;
+}
+
+bool UTurnInPlace::HasAuthority() const
+{
+	return IsValid(Character) ? Character->HasAuthority() : false;
+}
+
+void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
+{
+	// Compress result and replicate turn offset to simulated proxy
+	if (HasAuthority() && GetNetMode() != NM_Standalone)
+	{
+		const FQuat LastTurnQuat = FRotator(0.f, LastTurnOffset, 0.f).Quaternion();
+		const FQuat CurrentTurnQuat = FRotator(0.f, TurnOffset, 0.f).Quaternion();
+		if (!CurrentTurnQuat.Equals(LastTurnQuat, TURN_ROTATOR_TOLERANCE))
+		{
+			SimulatedTurnOffset.Compress(TurnOffset);
+			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedTurnOffset, this);
+		}
+	}
+}
+
+void UTurnInPlace::OnRep_SimulatedTurnOffset()
+{
+	// Decompress the replicated value from short to float, and apply it to the TurnInPlace component
+	// This keeps simulated proxies in sync with the server and allows them to turn in place
+	if (GetLocalRole() == ROLE_SimulatedProxy && HasValidData())
+	{
+		TurnOffset = SimulatedTurnOffset.Decompress();
+	}
 }
 
 void UTurnInPlace::OnRegister()
@@ -421,6 +474,12 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 #if UE_ENABLE_DEBUG_DRAWING
 	DebugRotation();
 #endif
+}
+
+void UTurnInPlace::PostTurnInPlace(float LastTurnOffset)
+{
+	// Compress result and replicate to simulated proxy
+	CompressSimulatedTurnOffset(LastTurnOffset);
 }
 
 void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)

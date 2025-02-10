@@ -7,9 +7,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Implementation/TurnInPlaceMovement.h"
 
-#include "Net/UnrealNetwork.h"
-#include "Net/Core/PushModel/PushModel.h"
-
 #if WITH_EDITOR
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -30,18 +27,6 @@ ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectIni
 		// You may want to experiment with these options for games with large character counts, as it can affect performance
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
-}
-
-void ATurnInPlaceCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	// Push Model
-	FDoRepLifetimeParams SharedParams;
-	SharedParams.bIsPushBased = true;
-	SharedParams.Condition = COND_SimulatedOnly;
-
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedTurnOffset, SharedParams);
 }
 
 void ATurnInPlaceCharacter::PreInitializeComponents()
@@ -69,16 +54,6 @@ void ATurnInPlaceCharacter::PreInitializeComponents()
 	}
 
 	Super::PreInitializeComponents();
-}
-
-void ATurnInPlaceCharacter::OnRep_SimulatedTurnOffset()
-{
-	// Decompress the replicated value from short to float, and apply it to the TurnInPlace component
-	// This keeps simulated proxies in sync with the server and allows them to turn in place
-	if (GetLocalRole() == ROLE_SimulatedProxy && TurnInPlace && TurnInPlace->HasValidData())
-	{
-		TurnInPlace->TurnOffset = SimulatedTurnOffset.Decompress();
-	}
 }
 
 bool ATurnInPlaceCharacter::IsTurningInPlace() const
@@ -110,17 +85,8 @@ bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, flo
 		// This is where the core logic of the TurnInPlace system is processed
 		TurnInPlace->FaceRotation(NewControlRotation, DeltaTime);
 
-		// Compress result and replicate to simulated proxy
-		if (HasAuthority() && GetNetMode() != NM_Standalone)
-		{
-			const FQuat LastTurnQuat = FRotator(0.f, LastTurnOffset, 0.f).Quaternion();
-			const FQuat CurrentTurnQuat = FRotator(0.f, TurnInPlace->TurnOffset, 0.f).Quaternion();
-			if (!CurrentTurnQuat.Equals(LastTurnQuat, TURN_ROTATOR_TOLERANCE))
-			{
-				SimulatedTurnOffset.Compress(TurnInPlace->TurnOffset);
-				MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedTurnOffset, this);
-			}
-		}
+		// Replicate the turn offset to simulated proxies
+		TurnInPlace->PostTurnInPlace(LastTurnOffset);
 
 		// We handled the rotation
 		return true;
