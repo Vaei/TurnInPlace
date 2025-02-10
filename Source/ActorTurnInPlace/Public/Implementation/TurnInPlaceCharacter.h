@@ -32,25 +32,11 @@ public:
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(BlueprintReadOnly, Category=Character)
 	TObjectPtr<UTurnInPlaceMovement> TurnInPlaceMovement;
-
-protected:
-	/**
-	 * Server replicates to simulated proxies by compressing TurnInPlace::TurnOffset from float to uint16 (short)
-	 * Simulated proxies decompress the value to float and apply it to the TurnInPlace component
-	 * This keeps simulated proxies in sync with the server and allows them to turn in place
-	 */
-	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTurnOffset)
-	FTurnInPlaceSimulatedReplication SimulatedTurnOffset;
 	
 public:
 	ATurnInPlaceCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
 	virtual void PreInitializeComponents() override;
-
-	UFUNCTION()
-	void OnRep_SimulatedTurnOffset();
 
 public:
 	/**

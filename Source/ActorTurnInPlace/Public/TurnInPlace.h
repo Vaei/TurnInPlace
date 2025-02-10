@@ -15,7 +15,7 @@ struct FGameplayTag;
  * Core TurnInPlace functionality
  * This is added to your ACharacter subclass which must override ACharacter::FaceRotation() to call ULMTurnInPlace::FaceRotation()
  */
-UCLASS(Blueprintable, HideCategories=(Variable, Sockets, Tags, ComponentTick, ComponentReplication, Activation, Cooking, Events, AssetUserData, Replication, Collision))
+UCLASS(Blueprintable, HideCategories=(Variable, Sockets, Tags, ComponentTick, Activation, Cooking, Events, AssetUserData, Replication, Collision, Navigation))
 class ACTORTURNINPLACE_API UTurnInPlace : public UActorComponent
 {
 	GENERATED_BODY()
@@ -54,8 +54,26 @@ protected:
 	UPROPERTY(Transient)
 	bool bHasWarned;
 
+	/**
+	 * Server replicates to simulated proxies by compressing TurnInPlace::TurnOffset from float to uint16 (short)
+	 * Simulated proxies decompress the value to float and apply it to the TurnInPlace component
+	 * This keeps simulated proxies in sync with the server and allows them to turn in place
+	 */
+	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTurnOffset)
+	FTurnInPlaceSimulatedReplication SimulatedTurnOffset;
+
 public:
 	UTurnInPlace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	ENetRole GetLocalRole() const;
+	bool HasAuthority() const;
+
+	void CompressSimulatedTurnOffset(float LastTurnOffset);
+
+	UFUNCTION()
+	void OnRep_SimulatedTurnOffset();
 
 	virtual void OnRegister() override;
 	virtual void PostLoad() override;
@@ -169,6 +187,9 @@ public:
 
 	/** Process the core logic of the TurnInPlace system */
 	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation);
+
+	/** Must be called from your ACharacter::FaceRotation() and UCharacterMovementComponent::PhysicsRotation() overrides */
+	virtual void PostTurnInPlace(float LastTurnOffset);
 	
 	/**
 	 * Must be called from your ACharacter::FaceRotation() override

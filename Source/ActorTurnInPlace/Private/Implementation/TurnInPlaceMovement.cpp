@@ -144,12 +144,17 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 	// Allow the turn in place system to handle rotation if desired
 	if (UTurnInPlace* TurnInPlace = GetTurnInPlace())
 	{
+		const float LastTurnOffset = TurnInPlace->TurnOffset;
+		
 		// We will abort handling if not stationary or not rotating to the last input vector
 		if (!TurnInPlace->PhysicsRotation(this, DeltaTime, bRotateToLastInputVector, LastInputVector))
 		{
 			// Let CMC handle the rotation
 			Super::PhysicsRotation(DeltaTime);
 		}
+
+		// Replicate the turn offset to simulated proxies
+		TurnInPlace->PostTurnInPlace(LastTurnOffset);
 	}
 	else
 	{
