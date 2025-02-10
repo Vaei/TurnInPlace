@@ -23,7 +23,7 @@ class ACTORTURNINPLACE_API ITurnInPlaceAnimInterface
 public:
 	/**
 	 * Get the current turn in place anim set.
-	 * You MUST maintain thread safety when implementing this function.
+	 * You must maintain thread safety when implementing this function.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
 	FTurnInPlaceAnimSet GetTurnInPlaceAnimSet() const;
@@ -33,7 +33,7 @@ public:
 	 * Get the cached turn in place curve values.
 	 * These should have been cached in NativeThreadSafeUpdateAnimation or BlueprintThreadSafeUpdateAnimation
 	 * Avoid updating these out of sync with the anim graph by caching them in a consistent position thread-wise
-	 * You MUST maintain thread safety when implementing this function.
+	 * You must maintain thread safety when implementing this function.
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
 	FTurnInPlaceCurveValues GetTurnInPlaceCurveValues() const;
