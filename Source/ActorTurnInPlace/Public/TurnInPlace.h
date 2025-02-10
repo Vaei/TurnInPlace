@@ -105,17 +105,6 @@ public:
 	virtual ETurnInPlaceOverride OverrideTurnInPlace_Implementation() const;
 
 	/**
-	 * Used for determining if the character is currently in a pivot anim state
-	 * Only required if you blend turn rotation using EInterpOutMode::AnimationCurve instead of EInterpOutMode::Interpolation 
-	 * @see UTurnInPlace::PhysicsRotation()
-	 * @see EInterpOutMode
-	 * @return True if the character is currently in a pivot anim state
-	 */
-	UFUNCTION(BlueprintNativeEvent, Category=Turn)
-	bool IsPivoting() const;
-	virtual bool IsPivoting_Implementation() const { return false; }
-
-	/**
 	 * Used to tell the PhysicsRotation() to reinitialize
 	 * @return True if the character wants to reinitialize the physics rotation
 	 */
