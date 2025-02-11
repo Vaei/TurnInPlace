@@ -47,13 +47,6 @@ public:
 	bool IsTurningInPlace() const;
 
 	/**
-	 * SetActorRotation always performs a sweep even for yaw-only rotations which cannot reasonably collide
-	 * Use this function using SweepHandling to improve the behaviour of SetActorRotation
-	 */
-	bool SetCharacterRotation(const FRotator& NewRotation, ETeleportType Teleport = ETeleportType::None,
-		ERotationSweepHandling SweepHandling = ERotationSweepHandling::AutoDetect);
-
-	/**
 	 * Called by ACharacter::FaceRotation() to handle turn in place rotation
 	 * @return True if FaceRotation is handled
 	 */
@@ -63,12 +56,6 @@ public:
 	 * Overrides ACharacter::FaceRotation() to handle turn in place rotation
 	 */
 	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f) override;
-
-	/**
-	 * Calls Super::FaceRotation() to use SetCharacterRotation instead of SetActorRotation
-	 * This is optional, and you do not need to do this for TurnInPlace to work
-	 */
-	void SuperFaceRotation(FRotator NewControlRotation, float DeltaTime = 0.f);
 
 	virtual void Tick(float DeltaTime) override;
 };

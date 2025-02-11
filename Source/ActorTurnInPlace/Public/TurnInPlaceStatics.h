@@ -20,13 +20,6 @@ class ACTORTURNINPLACE_API UTurnInPlaceStatics : public UBlueprintFunctionLibrar
 
 public:
 	/**
-	 * SetActorRotation always performs a sweep even for yaw-only rotations which cannot reasonably collide
-	 * Use this function using SweepHandling to improve the behaviour of SetActorRotation
-	 */
-	UFUNCTION(BlueprintCallable, Category=Turn, meta=(DefaultToSelf="Character"))
-	static bool SetCharacterRotation(ACharacter* Character, const FRotator& NewRotation, ETeleportType Teleport = ETeleportType::None, ERotationSweepHandling SweepHandling = ERotationSweepHandling::AutoDetect);
-
-	/**
 	 * Set the character's movement type.
 	 * This is a convenience function that sets movement properties on the character and movement component.
 	 * OrientToMovement: Orient towards our movement direction. Use bOrientRotationToMovement, disable bUseControllerDesiredRotation and bUseControllerRotationYaw. Updated in UCharacterMovementComponent::PhysicsRotation()

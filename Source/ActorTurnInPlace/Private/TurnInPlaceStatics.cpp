@@ -11,40 +11,6 @@
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceStatics)
 
-bool UTurnInPlaceStatics::SetCharacterRotation(ACharacter* Character, const FRotator& NewRotation,
-	ETeleportType Teleport, ERotationSweepHandling SweepHandling)
-{
-#if ENABLE_NAN_DIAGNOSTIC
-	if (NewRotation.ContainsNaN())
-	{
-		logOrEnsureNanError(TEXT("AActor::SetActorRotation found NaN in FRotator NewRotation"));
-		NewRotation = FRotator::ZeroRotator;
-	}
-#endif
-	if (Character->GetRootComponent())
-	{
-		bool bSweep = false;
-		switch (SweepHandling)
-		{
-		case ERotationSweepHandling::AutoDetect:
-			{
-				const FRotator Delta = (NewRotation - Character->GetRootComponent()->GetRelativeRotation()).GetNormalized();
-				bSweep = !FMath::IsNearlyZero(Delta.Pitch) || !FMath::IsNearlyZero(Delta.Roll);
-			}
-			break;
-		case ERotationSweepHandling::AlwaysSweep:
-			bSweep = true;
-			break;
-		case ERotationSweepHandling::NeverSweep:
-			bSweep = false;
-			break;
-		}
-		return Character->GetRootComponent()->MoveComponent(FVector::ZeroVector, NewRotation, bSweep, nullptr, MOVECOMP_NoFlags, Teleport);
-	}
-
-	return false;
-}
-
 void UTurnInPlaceStatics::SetCharacterMovementType(ACharacter* Character, ECharacterMovementType MovementType)
 {
 	if (IsValid(Character) && Character->GetCharacterMovement())
