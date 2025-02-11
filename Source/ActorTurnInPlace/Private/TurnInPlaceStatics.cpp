@@ -93,7 +93,6 @@ void UTurnInPlaceStatics::DebugTurnInPlace(UObject* WorldContextObject, bool bDe
 #if UE_ENABLE_DEBUG_DRAWING
 	// Exec all debug commands
 	const FString DebugState = bDebug ? TEXT(" 1") : TEXT(" 0");
-	UKismetSystemLibrary::ExecuteConsoleCommand(WorldContextObject, TEXT("p.Turn.Debug.NetworkSettings") + DebugState);
 	UKismetSystemLibrary::ExecuteConsoleCommand(WorldContextObject, TEXT("p.Turn.Debug.TurnOffset") + DebugState);
 	UKismetSystemLibrary::ExecuteConsoleCommand(WorldContextObject, TEXT("p.Turn.Debug.TurnOffset.Arrow") + DebugState);
 	UKismetSystemLibrary::ExecuteConsoleCommand(WorldContextObject, TEXT("p.Turn.Debug.ActorDirection.Arrow") + DebugState);
