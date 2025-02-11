@@ -7,7 +7,7 @@
 #include "Components/ActorComponent.h"
 #include "TurnInPlace.generated.h"
 
-#define TURN_ROTATOR_TOLERANCE	(1.e-3f) 
+#define TURN_ROTATOR_TOLERANCE	(1.e-3f)
 
 class UCharacterMovementComponent;
 struct FGameplayTag;
@@ -15,7 +15,7 @@ struct FGameplayTag;
  * Core TurnInPlace functionality
  * This is added to your ACharacter subclass which must override ACharacter::FaceRotation() to call ULMTurnInPlace::FaceRotation()
  */
-UCLASS(Blueprintable, HideCategories=(Variable, Sockets, Tags, ComponentTick, Activation, Cooking, Events, AssetUserData, Replication, Collision, Navigation))
+UCLASS(Blueprintable, BlueprintType, meta=(BlueprintSpawnableComponent), HideCategories=(Variable, Sockets, Tags, ComponentTick, Activation, Cooking, Events, AssetUserData, Replication, Collision, Navigation))
 class ACTORTURNINPLACE_API UTurnInPlace : public UActorComponent
 {
 	GENERATED_BODY()
