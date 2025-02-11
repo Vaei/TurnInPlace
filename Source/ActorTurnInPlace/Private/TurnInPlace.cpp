@@ -9,6 +9,9 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#include "Net/UnrealNetwork.h"
+#include "Net/Core/PushModel/PushModel.h"
+
 #if WITH_EDITOR
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -17,9 +20,6 @@
 #if WITH_SIMPLE_ANIMATION && UE_ENABLE_DEBUG_DRAWING
 #include "SimpleAnimLib.h"
 #endif
-
-#include "Net/UnrealNetwork.h"
-#include "Net/Core/PushModel/PushModel.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlace)
 
