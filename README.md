@@ -28,6 +28,8 @@ This is my own solution that I developed from scratch because no adequate soluti
 
 ### Feature Rich
 
+_Multiplayer Ready: No extra steps required_
+
 Provides turn in place for the following movement types:
 * `ACharacter::bUseControllerRotationYaw` for strafing movement used in shooters (Lyra uses this exclusively)
 * `UCharacterMovementComponent::bUseControllerDesiredRotation` for strafing movement that interpolates smoothly
