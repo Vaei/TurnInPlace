@@ -10,7 +10,7 @@ Notes only
 > [!WARNING]
 > Use `git clone` instead of downloading as a zip, or you will not receive content
 
-> [!NOTE]
+> [!TIP]
 > Content requires UE5.5+, however tested and compiling on 5.2 and above.
 > <br>Content is not required, provided you can view the content in a 5.5 project
 
