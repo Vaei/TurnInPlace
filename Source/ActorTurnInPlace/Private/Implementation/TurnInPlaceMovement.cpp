@@ -152,7 +152,7 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 			// Let CMC handle the rotation
 			Super::PhysicsRotation(DeltaTime);
 		}
-
+	
 		// Replicate the turn offset to simulated proxies
 		TurnInPlace->PostTurnInPlace(LastTurnOffset);
 	}
@@ -173,60 +173,27 @@ class FNetworkPredictionData_Client* UTurnInPlaceMovement::GetPredictionData_Cli
 	return ClientPredictionData;
 }
 
+UTurnInPlace* FSavedMove_Character_TurnInPlace::GetTurnInPlace(ACharacter* C)
+{
+	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
+	return MoveComp ? MoveComp->GetTurnInPlace() : nullptr;
+}
+
 void FSavedMove_Character_TurnInPlace::Clear()
 {
 	Super::Clear();
 
-	StartTurnOffset = 0.f;
-	EndTurnOffset = 0.f;
+	LastAppliedTurnYaw = 0.f;
 }
 
 void FSavedMove_Character_TurnInPlace::SetInitialPosition(ACharacter* C)
 {
 	Super::SetInitialPosition(C);
 
-	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
-	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
+	if (UTurnInPlace* TurnInPlace = GetTurnInPlace(C))
 	{
-		StartTurnOffset = TurnInPlace->TurnOffset;
+		LastAppliedTurnYaw = TurnInPlace->LastAppliedTurnYaw;
 	}
-}
-
-void FSavedMove_Character_TurnInPlace::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
-{
-	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
-	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
-	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
-	{
-		EndTurnOffset = TurnInPlace->TurnOffset;
-		
-		if (PostUpdateMode == PostUpdate_Record)
-		{
-			// Don't combine moves if the properties changed over the course of the move
-			if (UTurnInPlace::HasTurnOffsetChanged(StartTurnOffset, EndTurnOffset))
-			{
-				// Turn in place will occur at HALF the angle on the LOCAL CLIENT due to how rotation is handled when combining moves
-				bForceNoCombine = true;
-			}
-		}
-	}
-
-	Super::PostUpdate(C, PostUpdateMode);
-}
-
-bool FSavedMove_Character_TurnInPlace::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
-	float MaxDelta) const
-{
-	const TSharedPtr<FSavedMove_Character_TurnInPlace>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_TurnInPlace>(NewMove);
-	
-	// Don't combine moves if the properties changed over the course of the move
-	if (UTurnInPlace::HasTurnOffsetChanged(StartTurnOffset, SavedMove->StartTurnOffset))
-	{
-		// Turn in place will occur at HALF the angle on the LOCAL CLIENT due to how rotation is handled when combining moves
-		return false;
-	}
-	
-	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
 }
 
 void FSavedMove_Character_TurnInPlace::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
@@ -234,11 +201,22 @@ void FSavedMove_Character_TurnInPlace::CombineWith(const FSavedMove_Character* O
 {
 	Super::CombineWith(OldMove, C, PC, OldStartLocation);
 
-	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
-	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
+	if (UCharacterMovementComponent* MoveComp = C ? C->GetCharacterMovement() : nullptr)
 	{
-		const FSavedMove_Character_TurnInPlace* SavedOldMove = static_cast<const FSavedMove_Character_TurnInPlace*>(OldMove);
-		TurnInPlace->TurnOffset = SavedOldMove->StartTurnOffset;
+		// Turn in place not supported when we are attached to a moving parent
+		if (!StartAttachParent.Get())
+		{
+			/*
+			 * When combining moves, the rotation is set back to StartRotation which will discard our turn in place rotation
+			 * So we need to save our turn in place at the same position, and then apply it back over the top after the rotation is set
+			 *
+			 * The result of not doing this would be that when combining moves (by default FPS >60), approximately half
+			 * the turn in place angle would be lost only on the local client, i.e. they would rotate half as much as the server
+			 */
+			const FSavedMove_Character_TurnInPlace* SavedOldMove = static_cast<const FSavedMove_Character_TurnInPlace*>(OldMove);
+			const FRotator NewStartRotation = (SavedOldMove->StartRotation + FRotator(0.f, SavedOldMove->LastAppliedTurnYaw, 0.f)).GetNormalized();
+			MoveComp->UpdatedComponent->SetWorldRotation(NewStartRotation, false, nullptr, MoveComp->GetTeleportType());
+		}
 	}
 }
 
