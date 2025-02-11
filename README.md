@@ -1,3 +1,8 @@
+# Actor Turn In Place <img align="right" width=128, height=128 src="https://github.com/Vaei/TurnInPlace/blob/main/Resources/Icon128.png">
+
+> [!IMPORTANT]
+> Actor-Based Turn in Place Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
+
 Incomplete / TODO
 
 Notes only
@@ -8,6 +13,9 @@ Notes only
 > [!NOTE]
 > Content requires UE5.5+, however tested and compiling on 5.2 and above.
 > <br>Content is not required, provided you can view the content in a 5.5 project
+
+> [!NOTE]
+> [Read the Wiki for instructions](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
 Avoid mesh-based TIP because:
 * Fights the sim proxy's mesh smoothing
@@ -22,3 +30,8 @@ Avoid mesh-based TIP because:
 Use actor-based TIP because:
 * Has no issues whatsoever
 * Can be tucked away almost entirely in code
+
+# Changelog
+
+### 1.0.0
+* Initial Release
