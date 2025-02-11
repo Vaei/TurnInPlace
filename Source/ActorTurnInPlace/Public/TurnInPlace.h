@@ -185,6 +185,8 @@ public:
 	/** Which method to use for turning in place. Either PhysicsRotation() or FaceRotation() */
 	virtual ETurnMethod GetTurnMethod() const;
 
+	static bool HasTurnOffsetChanged(float CurrentValue, float LastValue);
+
 	/** Process the core logic of the TurnInPlace system */
 	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation);
 
