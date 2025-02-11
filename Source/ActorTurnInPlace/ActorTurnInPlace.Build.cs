@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright (c) 2025 Jared Taylor
 
 using UnrealBuildTool;
 using EpicGames.Core;
