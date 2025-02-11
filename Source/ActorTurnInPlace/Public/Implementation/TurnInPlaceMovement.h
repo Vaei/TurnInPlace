@@ -72,4 +72,52 @@ public:
 
 	/** Handle rotation based on the TurnInPlace component */
 	virtual void PhysicsRotation(float DeltaTime) override;
+
+public:
+	/** Get prediction data for a client game. Should not be used if not running as a client. Allocates the data on demand and can be overridden to allocate a custom override if desired. Result must be a FNetworkPredictionData_Client_Character. */
+	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+};
+
+class ACTORTURNINPLACE_API FSavedMove_Character_TurnInPlace : public FSavedMove_Character
+{
+	using Super = FSavedMove_Character;
+
+public:
+	FSavedMove_Character_TurnInPlace()
+		: StartTurnOffset(0)
+		, EndTurnOffset(0)
+	{}
+
+	virtual ~FSavedMove_Character_TurnInPlace() override
+	{}
+
+	float StartTurnOffset;
+	float EndTurnOffset;
+
+	/** Clear saved move properties, so it can be re-used. */
+	virtual void Clear() override;
+
+	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
+	virtual void SetInitialPosition(ACharacter* C) override;
+	
+	/** Set the properties describing the final position, etc. of the moved pawn. */
+	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
+
+	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
+	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
+	
+	/** Combine this move with an older move and update relevant state. */
+	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
+};
+
+class ACTORTURNINPLACE_API FNetworkPredictionData_Client_Character_TurnInPlace : public FNetworkPredictionData_Client_Character
+{
+	using Super = FNetworkPredictionData_Client_Character;
+
+public:
+	FNetworkPredictionData_Client_Character_TurnInPlace(const UCharacterMovementComponent& ClientMovement)
+		: Super(ClientMovement)
+	{}
+
+	virtual FSavedMovePtr AllocateNewMove() override;
 };

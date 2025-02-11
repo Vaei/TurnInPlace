@@ -161,3 +161,88 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 		Super::PhysicsRotation(DeltaTime);
 	}
 }
+
+class FNetworkPredictionData_Client* UTurnInPlaceMovement::GetPredictionData_Client() const
+{
+	if (ClientPredictionData == nullptr)
+	{
+		UTurnInPlaceMovement* MutableThis = const_cast<UTurnInPlaceMovement*>(this);
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Character_TurnInPlace(*this);
+	}
+
+	return ClientPredictionData;
+}
+
+void FSavedMove_Character_TurnInPlace::Clear()
+{
+	Super::Clear();
+
+	StartTurnOffset = 0.f;
+	EndTurnOffset = 0.f;
+}
+
+void FSavedMove_Character_TurnInPlace::SetInitialPosition(ACharacter* C)
+{
+	Super::SetInitialPosition(C);
+
+	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
+	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
+	{
+		StartTurnOffset = TurnInPlace->TurnOffset;
+	}
+}
+
+void FSavedMove_Character_TurnInPlace::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+{
+	// When considering whether to delay or combine moves, we need to compare the move at the start and the end
+	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
+	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
+	{
+		EndTurnOffset = TurnInPlace->TurnOffset;
+		
+		if (PostUpdateMode == PostUpdate_Record)
+		{
+			// Don't combine moves if the properties changed over the course of the move
+			if (UTurnInPlace::HasTurnOffsetChanged(StartTurnOffset, EndTurnOffset))
+			{
+				// Turn in place will occur at HALF the angle on the LOCAL CLIENT due to how rotation is handled when combining moves
+				bForceNoCombine = true;
+			}
+		}
+	}
+
+	Super::PostUpdate(C, PostUpdateMode);
+}
+
+bool FSavedMove_Character_TurnInPlace::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter,
+	float MaxDelta) const
+{
+	const TSharedPtr<FSavedMove_Character_TurnInPlace>& SavedMove = StaticCastSharedPtr<FSavedMove_Character_TurnInPlace>(NewMove);
+	
+	// Don't combine moves if the properties changed over the course of the move
+	if (UTurnInPlace::HasTurnOffsetChanged(StartTurnOffset, SavedMove->StartTurnOffset))
+	{
+		// Turn in place will occur at HALF the angle on the LOCAL CLIENT due to how rotation is handled when combining moves
+		return false;
+	}
+	
+	return Super::CanCombineWith(NewMove, InCharacter, MaxDelta);
+}
+
+void FSavedMove_Character_TurnInPlace::CombineWith(const FSavedMove_Character* OldMove, ACharacter* C,
+	APlayerController* PC, const FVector& OldStartLocation)
+{
+	Super::CombineWith(OldMove, C, PC, OldStartLocation);
+
+	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
+	if (UTurnInPlace* TurnInPlace = MoveComp ? MoveComp->GetTurnInPlace() : nullptr)
+	{
+		const FSavedMove_Character_TurnInPlace* SavedOldMove = static_cast<const FSavedMove_Character_TurnInPlace*>(OldMove);
+		TurnInPlace->TurnOffset = SavedOldMove->StartTurnOffset;
+	}
+}
+
+FSavedMovePtr FNetworkPredictionData_Client_Character_TurnInPlace::AllocateNewMove()
+{
+	return MakeShared<FSavedMove_Character_TurnInPlace>();
+}
