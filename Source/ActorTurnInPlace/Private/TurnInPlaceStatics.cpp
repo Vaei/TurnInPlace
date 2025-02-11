@@ -8,6 +8,9 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/AnimInstance.h"
+#include "EngineDefines.h"  // For UE_ENABLE_DEBUG_DRAWING
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceStatics)
 

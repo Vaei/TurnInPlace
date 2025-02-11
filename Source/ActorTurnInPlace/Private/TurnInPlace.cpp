@@ -8,6 +8,12 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "DrawDebugHelpers.h"
 
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
@@ -210,7 +216,7 @@ void UTurnInPlace::OnAnimInstanceChanged()
 			FMessageLog("PIE").Error(ErrorMsg);
 #else
 			// Log the error to the output log
-			UE_LOG(LogTurnInPlaceCharacter, Error, TEXT("%s"), *ErrorMsg.ToString());
+			UE_LOG(LogTurnInPlace, Error, TEXT("%s"), *ErrorMsg.ToString());
 #endif
 		}
 	}
@@ -694,9 +700,9 @@ int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float An
 	return StepSize;
 }
 
-#if UE_ENABLE_DEBUG_DRAWING
 void UTurnInPlace::DebugRotation() const
 {
+#if UE_ENABLE_DEBUG_DRAWING
 	if (!IsValid(Character))
 	{
 		return;
@@ -748,11 +754,13 @@ void UTurnInPlace::DebugRotation() const
 				40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
 		}
 	}
+#endif
 }
 
 static bool bHasWarnedSimpleAnimation = false;
 void UTurnInPlace::DebugServerPhysicsBodies() const
 {
+#if UE_ENABLE_DEBUG_DRAWING
 	// Draw Server's physics bodies
 	if (bDrawServerPhysicsBodies && Character->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
 	{
@@ -775,12 +783,12 @@ void UTurnInPlace::DebugServerPhysicsBodies() const
 			FMessageLog("PIE").Error(ErrorMsg);
 #else
 			// Log the error to the output log
-			UE_LOG(LogTurnInPlaceCharacter, Error, TEXT("%s"), *ErrorMsg.ToString());
+			UE_LOG(LogTurnInPlace, Error, TEXT("%s"), *ErrorMsg.ToString());
 #endif
 		}
 #endif
 	}
-}
 #endif
+}
 
 #undef LOCTEXT_NAMESPACE

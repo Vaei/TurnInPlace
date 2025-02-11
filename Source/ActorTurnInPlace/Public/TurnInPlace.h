@@ -9,7 +9,9 @@
 
 #define TURN_ROTATOR_TOLERANCE	(1.e-3f)
 
+class ACharacter;
 class UCharacterMovementComponent;
+class UAnimInstance;
 struct FGameplayTag;
 /**
  * Core TurnInPlace functionality
@@ -224,7 +226,6 @@ protected:
 	/** Used to determine which step size to use based on the current TurnOffset and the last FTurnInPlaceParams */
 	static int32 DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight);
 
-#if UE_ENABLE_DEBUG_DRAWING
 public:
 	/** Debug the turn in place properties if enabled */
 	void DebugRotation() const;
@@ -232,5 +233,4 @@ public:
 protected:
 	/** Debug server's anims by drawing physics bodies. Must be called externally from character's Tick() */
 	void DebugServerPhysicsBodies() const;
-#endif
 };
