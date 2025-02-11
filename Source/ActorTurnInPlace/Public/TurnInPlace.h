@@ -153,6 +153,9 @@ public:
 	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
 	float TurnOffset;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	float LastAppliedTurnYaw;
 
 	/**
 	 * The current value of the curve represented by TurnYawCurveName

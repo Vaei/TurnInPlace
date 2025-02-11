@@ -466,6 +466,7 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 
 	// Normalize the turn offset to -180 to 180
 	const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnOffset + CurrentRotation.Yaw));
+	LastAppliedTurnYaw = ActorTurnRotation;
 
 	// Apply the turn offset to the character
 	Character->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));

@@ -84,28 +84,22 @@ class ACTORTURNINPLACE_API FSavedMove_Character_TurnInPlace : public FSavedMove_
 
 public:
 	FSavedMove_Character_TurnInPlace()
-		: StartTurnOffset(0)
-		, EndTurnOffset(0)
+		: LastAppliedTurnYaw(0)
 	{}
 
 	virtual ~FSavedMove_Character_TurnInPlace() override
 	{}
 
-	float StartTurnOffset;
-	float EndTurnOffset;
+	float LastAppliedTurnYaw;
+
+	static UTurnInPlace* GetTurnInPlace(ACharacter* C);
 
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
 
 	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
 	virtual void SetInitialPosition(ACharacter* C) override;
-	
-	/** Set the properties describing the final position, etc. of the moved pawn. */
-	virtual void PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode) override;
 
-	/** Returns true if this move can be combined with NewMove for replication without changing any behavior */
-	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InCharacter, float MaxDelta) const override;
-	
 	/** Combine this move with an older move and update relevant state. */
 	virtual void CombineWith(const FSavedMove_Character* OldMove, ACharacter* InCharacter, APlayerController* PC, const FVector& OldStartLocation) override;
 };
