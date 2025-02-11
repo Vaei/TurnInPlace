@@ -104,6 +104,8 @@ void ATurnInPlaceCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 #if UE_ENABLE_DEBUG_DRAWING
+	// Don't attempt this in FaceRotation() or PhysicsRotation() because it will jitter due to unexpected delta
+	// times (e.g. from replication events, from physics sub-ticks, etc.)
 	if (TurnInPlace && TurnInPlace->HasValidData())
 	{
 		TurnInPlace->DebugServerAnim();

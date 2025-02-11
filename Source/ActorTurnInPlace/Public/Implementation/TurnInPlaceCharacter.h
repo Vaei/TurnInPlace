@@ -10,7 +10,7 @@
 class UTurnInPlaceMovement;
 class UTurnInPlace;
 /**
- * This character is optional.
+ * This character is optional. We don't cast to it in TurnInPlace.
  * You can integrate TurnInPlace into your own character class by copying the functionality.
  * 
  * @note You cannot integrate TurnInPlace in blueprints and must derive this character because you cannot override FaceRotation, etc.

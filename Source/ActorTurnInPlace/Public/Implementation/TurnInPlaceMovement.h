@@ -6,13 +6,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TurnInPlaceMovement.generated.h"
 
-
 class UTurnInPlace;
 class ATurnInPlaceCharacter;
 /**
- * This movement component is optional.
- * It will provide the ability to rotate to the last input vector with a separate idle rotation rate,
- * which is useful for turn in place that is non-strafing
+ * This movement component is optional. We don't cast to it in TurnInPlace.
+ * 
+ * Provides the ability to rotate to the last input vector with a separate idle rotation rate,
+ * which is useful for turn in place when using bOrientRotationToMovement
  */
 UCLASS()
 class ACTORTURNINPLACE_API UTurnInPlaceMovement : public UCharacterMovementComponent
