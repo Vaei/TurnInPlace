@@ -8,7 +8,7 @@
 
 > [!TIP]
 > Content requires UE5.5+, however tested and compiling on 5.2 and above.
-> <br>Content is not required, provided you can view the content in a 5.5 project to copy/paste from it and mirror the setup.
+> <br>Content is not required, provided you can view the content in a 5.5 project.
 
 > [!NOTE]
 > [Read the Wiki for instructions](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
