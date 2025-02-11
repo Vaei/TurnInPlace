@@ -17,11 +17,11 @@
 
 ## Actor-Based TIP
 
-Actor-Based TIP does not have any of the issues that come with Mesh-Based TIP. Read below.
+Actor-Based TIP does not have any of the issues that come with Mesh-Based TIP. Read below for a detailed list.
 
-This is my own solution that I developed from scratch because no adequate solution existed. We don't rotate the mesh, we simply use the existing functionality from ACharacter::FaceRotation() and UCharacterMovementComponent::PhysicsRotation() and store a `TurnOffset` on the `UTurnInPlace` Actor Component. That's it!
+We don't rotate the mesh, we simply use the existing functionality from `ACharacter::FaceRotation()` and `UCharacterMovementComponent::PhysicsRotation()` to store a `TurnOffset` on the `UTurnInPlace` Actor Component then apply it when we apply rotation to the Character. That's it!
 
-This is released for free because it should become the industry standard for Unreal Engine Turn In Place.
+This is my own solution that I developed from scratch because no adequate solution existed. This is released for free because it should become the industry standard for Unreal Engine Turn In Place.
 
 ### Feature Rich
 
