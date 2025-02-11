@@ -710,8 +710,10 @@ void UTurnInPlace::DebugRotation() const
 	{
 		// Don't overwrite other character's screen messages
 		const uint64 DebugKey = Character->GetUniqueID() + 1569;
+		FRandomStream ColorStream(DebugKey);
+		FColor DebugColor = FColor(ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255));
 		const FString CharacterRole = Character->HasAuthority() ? TEXT("Server") : Character->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
-		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, FColor::White, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
+		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, DebugColor, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
 	}
 
 	// We only want each character on screen to draw this once, so exclude servers from drawing this for the autonomous proxy
