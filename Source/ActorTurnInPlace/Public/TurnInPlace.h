@@ -23,11 +23,13 @@ class ACTORTURNINPLACE_API UTurnInPlace : public UActorComponent
 public:
 	/**
 	 * Draw server's physics bodies in editor - non-shipping builds only, not available in standalone
+	 * Allows us to visualize what the server is doing animation-wise
+	 * 
 	 * Requires SimpleAnimation plugin to be present and enabled
 	 * https://github.com/Vaei/SimpleAnimation
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
-	bool bDrawServerAnimation = false;
+	bool bDrawServerPhysicsBodies = false;
 	
 	/** Turn in place settings */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
@@ -223,12 +225,12 @@ protected:
 	static int32 DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight);
 
 #if UE_ENABLE_DEBUG_DRAWING
-protected:
+public:
 	/** Debug the turn in place properties if enabled */
 	void DebugRotation() const;
 
-public:
+protected:
 	/** Debug server's anims by drawing physics bodies. Must be called externally from character's Tick() */
-	void DebugServerAnim() const;
+	void DebugServerPhysicsBodies() const;
 #endif
 };
