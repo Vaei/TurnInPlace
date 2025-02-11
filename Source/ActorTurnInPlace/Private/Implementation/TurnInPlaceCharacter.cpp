@@ -61,13 +61,6 @@ bool ATurnInPlaceCharacter::IsTurningInPlace() const
 	return TurnInPlace && TurnInPlace->IsTurningInPlace();
 }
 
-bool ATurnInPlaceCharacter::SetCharacterRotation(const FRotator& NewRotation,
-	ETeleportType Teleport, ERotationSweepHandling SweepHandling)
-{
-	// Compensates for SetActorRotation always performing a sweep even for yaw-only rotations which cannot reasonably collide
-	return UTurnInPlaceStatics::SetCharacterRotation(this, NewRotation, Teleport, SweepHandling);
-}
-
 bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	// Allow the turn in place system to handle rotation if desired
@@ -101,44 +94,8 @@ void ATurnInPlaceCharacter::FaceRotation(FRotator NewControlRotation, float Delt
 	// Allow the turn in place system to handle rotation if desired
 	if (!TurnInPlaceRotation(NewControlRotation, DeltaTime))
 	{
-		// Use SetCharacterRotation instead of SetActorRotation
-		SuperFaceRotation(NewControlRotation, DeltaTime);
-	}
-}
-
-void ATurnInPlaceCharacter::SuperFaceRotation(FRotator NewControlRotation, float DeltaTime)
-{
-	// Override to use SetCharacterRotation instead of SetActorRotation
-	
-	// Only if we actually are going to use any component of rotation.
-	if (bUseControllerRotationPitch || bUseControllerRotationYaw || bUseControllerRotationRoll)
-	{
-		const FRotator CurrentRotation = GetActorRotation();
-
-		if (!bUseControllerRotationPitch)
-		{
-			NewControlRotation.Pitch = CurrentRotation.Pitch;
-		}
-
-		if (!bUseControllerRotationYaw)
-		{
-			NewControlRotation.Yaw = CurrentRotation.Yaw;
-		}
-
-		if (!bUseControllerRotationRoll)
-		{
-			NewControlRotation.Roll = CurrentRotation.Roll;
-		}
-
-#if ENABLE_NAN_DIAGNOSTIC
-		if (NewControlRotation.ContainsNaN())
-		{
-			logOrEnsureNanError(TEXT("APawn::FaceRotation about to apply NaN-containing rotation to actor! New:(%s), Current:(%s)"), *NewControlRotation.ToString(), *CurrentRotation.ToString());
-		}
-#endif
-
-		// Optimized to not sweep if we're only changing Yaw which cannot collide
-		SetCharacterRotation(NewControlRotation);
+		// Turn in place system did not handle rotation, so we'll handle it here
+		Super::FaceRotation(NewControlRotation, DeltaTime);
 	}
 }
 
