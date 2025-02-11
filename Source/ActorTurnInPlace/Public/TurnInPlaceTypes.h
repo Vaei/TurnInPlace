@@ -8,6 +8,9 @@
 #include "TurnInPlaceTags.h"
 #include "TurnInPlaceTypes.generated.h"
 
+class UAnimSequence;
+class UAnimMontage;
+
 /**
  * SetActorRotation always performs a sweep even for yaw-only rotations which cannot reasonably collide
  * Use the functions using SweepHandling to improve the behaviour of SetActorRotation

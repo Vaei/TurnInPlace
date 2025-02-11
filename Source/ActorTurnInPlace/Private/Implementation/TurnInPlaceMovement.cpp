@@ -6,7 +6,7 @@
 #include "TurnInPlace.h"
 #include "GameFramework/Character.h"
 #include "Implementation/TurnInPlaceCharacter.h"
-
+#include "Engine/World.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceMovement)
 

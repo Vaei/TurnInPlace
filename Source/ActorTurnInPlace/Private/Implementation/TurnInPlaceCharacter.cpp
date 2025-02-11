@@ -6,15 +6,18 @@
 #include "TurnInPlace.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Implementation/TurnInPlaceMovement.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
+#include "TurnInPlaceStatics.h"
 
 #if WITH_EDITOR
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 #endif
 
-#include "TurnInPlaceStatics.h"
-
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceCharacter)
+
+DEFINE_LOG_CATEGORY_STATIC(LogTurnInPlaceCharacter, Log, All);
 
 ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTurnInPlaceMovement>(CharacterMovementComponentName))
