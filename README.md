@@ -77,5 +77,8 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.0.1
+* Create component directly and unhide category to allow assignment to BP component
+
 ### 1.0.0
 * Initial Release
