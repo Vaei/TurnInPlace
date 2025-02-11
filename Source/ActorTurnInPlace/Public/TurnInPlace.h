@@ -17,7 +17,7 @@ struct FGameplayTag;
  * Core TurnInPlace functionality
  * This is added to your ACharacter subclass which must override ACharacter::FaceRotation() to call ULMTurnInPlace::FaceRotation()
  */
-UCLASS(Blueprintable, BlueprintType, meta=(BlueprintSpawnableComponent), HideCategories=(Variable, Sockets, Tags, ComponentTick, Activation, Cooking, Events, AssetUserData, Replication, Collision, Navigation))
+UCLASS(Blueprintable, BlueprintType, meta=(BlueprintSpawnableComponent), HideCategories=(Sockets, Tags, ComponentTick, Activation, Cooking, Events, AssetUserData, Replication, Collision, Navigation))
 class ACTORTURNINPLACE_API UTurnInPlace : public UActorComponent
 {
 	GENERATED_BODY()

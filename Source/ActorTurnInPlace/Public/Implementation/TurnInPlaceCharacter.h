@@ -26,17 +26,18 @@ public:
 	 * We do not create it here, but use FindComponentByClass() in PreInitializeComponents() that it can be added to
 	 * the character in Blueprint instead to allow for Blueprint derived components
 	 */
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Turn)
 	TObjectPtr<UTurnInPlace> TurnInPlace;
 
 	/** Movement component used for movement logic in various movement modes (walking, falling, etc), containing relevant settings and functions to control movement. */
 	UPROPERTY(BlueprintReadOnly, Category=Character)
 	TObjectPtr<UTurnInPlaceMovement> TurnInPlaceMovement;
+
+	/** Name of the TurnInPlace component. Use this name if you want to prevent creation of the component (with ObjectInitializer.DoNotCreateDefaultSubobject). */
+	static FName TurnInPlaceComponentName;
 	
 public:
 	ATurnInPlaceCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-	virtual void PreInitializeComponents() override;
 
 public:
 	/**

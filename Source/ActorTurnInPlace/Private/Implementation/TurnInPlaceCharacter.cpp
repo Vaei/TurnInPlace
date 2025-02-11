@@ -10,19 +10,16 @@
 #include "Engine/World.h"
 #include "TurnInPlaceStatics.h"
 
-#if WITH_EDITOR
-#include "Widgets/Notifications/SNotificationList.h"
-#include "Framework/Notifications/NotificationManager.h"
-#endif
-
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlaceCharacter)
 
-DEFINE_LOG_CATEGORY_STATIC(LogTurnInPlaceCharacter, Log, All);
+FName ATurnInPlaceCharacter::TurnInPlaceComponentName(TEXT("TurnInPlace"));
 
 ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTurnInPlaceMovement>(CharacterMovementComponentName))
 {
 	TurnInPlaceMovement = Cast<UTurnInPlaceMovement>(GetCharacterMovement());
+
+	TurnInPlace = CreateOptionalDefaultSubobject<UTurnInPlace>(TurnInPlaceComponentName);
 
 	if (GetMesh())
 	{
@@ -30,33 +27,6 @@ ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectIni
 		// You may want to experiment with these options for games with large character counts, as it can affect performance
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
-}
-
-void ATurnInPlaceCharacter::PreInitializeComponents()
-{
-	// Find the TurnInPlace component added to the character, typically in Blueprint
-	TurnInPlace = FindComponentByClass<UTurnInPlace>();
-	if (!TurnInPlace)
-	{
-		// Log an error if the component is not found
-		const FText ErrorMsg = FText::Format(
-			NSLOCTEXT("TurnInPlaceCharacter", "InvalidTurnComp", "No turn in place component found for {0}. Setup is invalid and turn in place cannot occur."),
-			FText::FromString(GetName()));
-#if WITH_EDITOR
-		// Show a notification in the editor
-		FNotificationInfo Info(FText::FromString("Invalid Turn In Place Setup. See Message Log."));
-		Info.ExpireDuration = 6.f;
-		FSlateNotificationManager::Get().AddNotification(Info);
-
-		// Log the error to message log
-		FMessageLog("PIE").Error(ErrorMsg);
-#else
-		// Log the error to the output log
-		UE_LOG(LogTurnInPlaceCharacter, Error, TEXT("%s"), *ErrorMsg.ToString());
-#endif
-	}
-
-	Super::PreInitializeComponents();
 }
 
 bool ATurnInPlaceCharacter::IsTurningInPlace() const
