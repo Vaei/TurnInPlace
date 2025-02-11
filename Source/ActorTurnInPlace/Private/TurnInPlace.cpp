@@ -105,9 +105,7 @@ void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
 	// Compress result and replicate turn offset to simulated proxy
 	if (HasAuthority() && GetNetMode() != NM_Standalone)
 	{
-		const FQuat LastTurnQuat = FRotator(0.f, LastTurnOffset, 0.f).Quaternion();
-		const FQuat CurrentTurnQuat = FRotator(0.f, TurnOffset, 0.f).Quaternion();
-		if (!CurrentTurnQuat.Equals(LastTurnQuat, TURN_ROTATOR_TOLERANCE))
+		if (HasTurnOffsetChanged(TurnOffset, LastTurnOffset))
 		{
 			SimulatedTurnOffset.Compress(TurnOffset);
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedTurnOffset, this);
@@ -373,6 +371,13 @@ ETurnMethod UTurnInPlace::GetTurnMethod() const
 	// UCharacterMovementComponent::PhysicsRotation handles orienting rotation to movement or controller desired rotation
 	// This is a smooth rotation that interpolates to the desired rotation
 	return ETurnMethod::PhysicsRotation;
+}
+
+bool UTurnInPlace::HasTurnOffsetChanged(float CurrentValue, float LastValue)
+{
+	const FQuat LastTurnQuat = FRotator(0.f, LastValue, 0.f).Quaternion();
+	const FQuat CurrentTurnQuat = FRotator(0.f, CurrentValue, 0.f).Quaternion();
+	return !CurrentTurnQuat.Equals(LastTurnQuat, TURN_ROTATOR_TOLERANCE);
 }
 
 void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation)
