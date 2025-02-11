@@ -108,7 +108,7 @@ void ATurnInPlaceCharacter::Tick(float DeltaTime)
 	// times (e.g. from replication events, from physics sub-ticks, etc.)
 	if (TurnInPlace && TurnInPlace->HasValidData())
 	{
-		TurnInPlace->DebugServerAnim();
+		TurnInPlace->DebugRotation();
 	}
 #endif
 }

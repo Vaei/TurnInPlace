@@ -476,10 +476,6 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	const FString NetRole = GetNetMode() == NM_Standalone ? TEXT("") : Character->GetLocalRole() == ROLE_Authority ? TEXT("[ Server ]") : TEXT("[ Client ]");
 	UE_LOG(LogTurnInPlace, Verbose, TEXT("%s cv %.2f  lcv %.2f  offset %.2f"), *NetRole, CurveValue, LastCurveValue, TurnOffset);
 #endif
-	
-#if UE_ENABLE_DEBUG_DRAWING
-	DebugRotation();
-#endif
 }
 
 void UTurnInPlace::PostTurnInPlace(float LastTurnOffset)
@@ -551,9 +547,6 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			Character->SetActorRotation(NewControlRotation);
 		}
 	}
-#if UE_ENABLE_DEBUG_DRAWING
-	DebugRotation();
-#endif
 }
 
 bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
@@ -603,10 +596,6 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 		return true;
 	}
 
-#if UE_ENABLE_DEBUG_DRAWING
-	DebugRotation();
-#endif
-	
 	// We've started moving, CMC can take over by calling Super::PhysicsRotation()
 	TurnOffset = 0.f;  // Cull this when we start moving, it will be recalculated when we stop moving
 	return false;
@@ -706,7 +695,6 @@ int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float An
 }
 
 #if UE_ENABLE_DEBUG_DRAWING
-static bool bHasWarnedSimpleAnimation = false;
 void UTurnInPlace::DebugRotation() const
 {
 	if (!IsValid(Character))
@@ -714,49 +702,57 @@ void UTurnInPlace::DebugRotation() const
 		return;
 	}
 
+	// Optionally draw server's physics bodies so we can visualize what they're doing animation-wise
+	DebugServerPhysicsBodies();
+
 	// Turn Offset Screen Text
 	if (TurnInPlaceCvars::bDebugTurnOffset && GEngine)
 	{
 		// Don't overwrite other character's screen messages
 		const uint64 DebugKey = Character->GetUniqueID() + 1569;
 		const FString CharacterRole = Character->HasAuthority() ? TEXT("Server") : Character->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
-		GEngine->AddOnScreenDebugMessage(DebugKey, 1.f, FColor::White, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
+		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, FColor::White, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
 	}
 
-	// Draw Debug Arrows
-	const float HalfHeight = Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-	const FVector& ActorLocation = Character->GetActorLocation();
-	const FVector Location = (ActorLocation - (FVector::UpVector * HalfHeight));
-
-	// Actor Rotation Vector
-	if (TurnInPlaceCvars::bDebugActorDirectionArrow)
+	// We only want each character on screen to draw this once, so exclude servers from drawing this for the autonomous proxy
+	if (Character->GetRemoteRole() != ROLE_AutonomousProxy)
 	{
-		DrawDebugDirectionalArrow(Character->GetWorld(), Location,
-			Location + (Character->GetActorForwardVector() * 200.f), 40.f, FColor(199, 10, 143),
-			false, -1, 0, 2.f);
-	}
+		// Draw Debug Arrows
+		const float HalfHeight = Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		const FVector& ActorLocation = Character->GetActorLocation();
+		const FVector Location = ActorLocation - (FVector::UpVector * HalfHeight);
 
-	// Control Rotation Vector
-	if (TurnInPlaceCvars::bDebugControlDirectionArrow)
-	{
-		DrawDebugDirectionalArrow(Character->GetWorld(), Location,
-			Location + (FRotator(0.f, Character->GetControlRotation().Yaw, 0.f).Vector() * 200.f), 40.f,
-			FColor::Black, false, -1, 0, 2.f);
-	}
+		// Actor Rotation Vector
+		if (TurnInPlaceCvars::bDebugActorDirectionArrow)
+		{
+			DrawDebugDirectionalArrow(Character->GetWorld(), Location,
+				Location + (Character->GetActorForwardVector() * 200.f), 40.f, FColor(199, 10, 143),
+				false, -1, 0, 2.f);
+		}
 
-	// Turn Rotation Vector
-	if (TurnInPlaceCvars::bDebugTurnOffsetArrow)
-	{
-		const FVector TurnVector = (Character->GetActorRotation() + FRotator(0.f, TurnOffset, 0.f)).GetNormalized().Vector();
-		DrawDebugDirectionalArrow(Character->GetWorld(), Location, Location + (TurnVector * 200.f),
-			40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
+		// Control Rotation Vector
+		if (TurnInPlaceCvars::bDebugControlDirectionArrow)
+		{
+			DrawDebugDirectionalArrow(Character->GetWorld(), Location,
+				Location + (FRotator(0.f, Character->GetControlRotation().Yaw, 0.f).Vector() * 200.f), 40.f,
+				FColor::Black, false, -1, 0, 2.f);
+		}
+
+		// Turn Rotation Vector
+		if (TurnInPlaceCvars::bDebugTurnOffsetArrow)
+		{
+			const FVector TurnVector = (Character->GetActorRotation() + FRotator(0.f, TurnOffset, 0.f)).GetNormalized().Vector();
+			DrawDebugDirectionalArrow(Character->GetWorld(), Location, Location + (TurnVector * 200.f),
+				40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
+		}
 	}
 }
 
-void UTurnInPlace::DebugServerAnim() const
+static bool bHasWarnedSimpleAnimation = false;
+void UTurnInPlace::DebugServerPhysicsBodies() const
 {
 	// Draw Server's physics bodies
-	if (bDrawServerAnimation && Character->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
+	if (bDrawServerPhysicsBodies && Character->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
 	{
 #if WITH_SIMPLE_ANIMATION
 		USimpleAnimLib::DrawPawnDebugPhysicsBodies(Character, GetMesh(), true, false, false);
