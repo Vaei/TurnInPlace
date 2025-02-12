@@ -88,22 +88,6 @@ enum class ETurnAnimSelectMode : uint8
 /**
  * Compressed representation of Turn in Place for replication to Simulated Proxies with significant compression
  * to reduce network bandwidth
- * Set simulated rotation time to 0.2 roughly for dedicated server (default 0.05 will jitter)
- *
- * Add this to your ACharacter class as ReplicatedTurnOffset
- * Have it ReplicatedUsing=OnRep_ReplicatedTurnOffset
- *
- * Add it to GetLifetimeReplicatedProps: DOREPLIFETIME_CONDITION(ThisClass, ReplicatedTurnOffset, COND_SimulatedOnly);
- *
- * In ACharacter::FaceRotation, at the end, use the following snippet:
- *
- * 	if (HasAuthority() && GetNetMode() != NM_Standalone)
- *	{
- *		ReplicatedTurnOffset.Compress(TurnInPlace.TurnOffset);
- *	}
- *
- *	In OnRep_ReplicatedTurnOffset() use this:
- *	TurnInPlace.TurnOffset = ReplicatedTurnOffset.Decompress();
  */
 USTRUCT()
 struct ACTORTURNINPLACE_API FTurnInPlaceSimulatedReplication
