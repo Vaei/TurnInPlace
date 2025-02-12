@@ -3,6 +3,8 @@
 > [!IMPORTANT]
 > Actor-Based Turn in Place (TIP) Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
 
+[Showcase Video](https://t.co/tUQ1csqX6k)
+
 > [!WARNING]
 > Use `git clone` instead of downloading as a zip, or you will not receive content
 > <br>Install this as a project plugin, not an engine plugin
