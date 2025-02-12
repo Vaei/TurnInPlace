@@ -5,6 +5,7 @@
 
 > [!WARNING]
 > Use `git clone` instead of downloading as a zip, or you will not receive content
+> <br>Install this as a project plugin, not an engine plugin
 
 > [!TIP]
 > Content requires UE5.5+, however tested and compiling on 5.2 and above
