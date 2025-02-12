@@ -11,7 +11,7 @@
 > <br>Content is not required, provided you can view the content in a 5.5 project
 
 > [!NOTE]
-> [Read the Wiki for instructions](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
+> [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
 > [!CAUTION]
 > Video Coming Soon!
