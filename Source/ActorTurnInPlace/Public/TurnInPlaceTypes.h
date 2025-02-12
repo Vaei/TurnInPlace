@@ -151,6 +151,32 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSettings
 };
 
 /**
+ * These properties are used to determine how the turn in place system behaves when under the control of root motion
+ */
+USTRUCT(BlueprintType)
+struct ACTORTURNINPLACE_API FTurnInPlaceMontageHandling
+{
+	GENERATED_BODY()
+
+	FTurnInPlaceMontageHandling()
+		: bIgnoreAdditiveMontages(true)
+		, IgnoreMontageSlots({ TEXT("UpperBody"), TEXT("UpperBodyAdditive"), TEXT("UpperBodyDynAdditiveBase"), TEXT("UpperBodyDynAdditive"), TEXT("Attack") })
+	{}
+
+	/** Montages with additive tracks will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	bool bIgnoreAdditiveMontages;
+
+	/** Montages using these slots will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	TArray<FName> IgnoreMontageSlots;
+
+	/** Montages added here not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	TArray<UAnimMontage*> IgnoreMontages;
+};
+
+/**
  * Minimum and maximum turn angles
  */
 USTRUCT(BlueprintType)
@@ -164,14 +190,14 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAngles
 	{}
 	
 	/** Angle at which turn in place will trigger */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta = (UIMin = "0", ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="180", ClampMax="180", Delta="1", ForceUnits="degrees"))
 	float MinTurnAngle;
 
 	/**
 	 * Maximum angle at which point the character will turn to maintain this value (hard clamp on angle)
 	 * Set to 0.0 to disable
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta = (UIMin = "0", ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="180", ClampMax="180", Delta="1", ForceUnits="degrees"))
 	float MaxTurnAngle;
 };
 
@@ -191,8 +217,6 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 		, SelectOffset(0.f)
 		, StepSizes({ 60, 90, 180 })
 		, MovingInterpOutRate(1.f)
-		, bIgnoreAdditiveMontages(true)
-		, IgnoreMontageSlots({ TEXT("UpperBody"), TEXT("UpperBodyAdditive"), TEXT("UpperBodyDynAdditiveBase"), TEXT("UpperBodyDynAdditive"), TEXT("Attack") })
 	{
 		TurnAngles.Add(FTurnInPlaceTags::TurnMode_Movement, FTurnInPlaceAngles(60.f, 0.f));
 		TurnAngles.Add(FTurnInPlaceTags::TurnMode_Strafe, FTurnInPlaceAngles(60.f, 135.f));
@@ -203,18 +227,18 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	ETurnInPlaceEnabledState State;
 
 	/** How to determine which turn animation to play */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
 	ETurnAnimSelectMode SelectMode;
 
 	/**
 	 * When selecting the animation to play, add this value to the current offset.
 	 * @warning This can offset the animation far enough that it plays an additional animation to correct the offset
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides, UIMin="-180", ClampMin="-180", UIMax="180", ClampMax="180", Delta="0.1", ForceUnits="degrees"))
 	float SelectOffset;
 
 	/** Turn angles for different movement orientations */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
 	TMap<FGameplayTag, FTurnInPlaceAngles> TurnAngles;
 
 	const FTurnInPlaceAngles* GetTurnAngles(const FGameplayTag& TurnModeTag) const
@@ -231,7 +255,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	 * Yaw angles where different step animations occur
 	 * Corresponding animations must be present for the anim graph to play
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides, UIMin="0", ClampMin="0", UIMax="180", ClampMax="180", Delta="1", ForceUnits="degrees"))
 	TArray<int32> StepSizes;
 
 	/**
@@ -241,20 +265,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	 * When we start moving we interpolate out of the turn in place at this rate
 	 * Interpolation occurs in a range of 0.0 to 1.0 so low values have a big impact on the rate
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="3", Delta="0.1"))
 	float MovingInterpOutRate;
 
-	/** Montages with additive tracks will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
-	bool bIgnoreAdditiveMontages;
-
-	/** Montages using these slots will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
-	TArray<FName> IgnoreMontageSlots;
-
-	/** Montages added here not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State==ETurnInPlaceEnabledState::Enabled", EditConditionHides))
-	TArray<UAnimMontage*> IgnoreMontages;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
+	FTurnInPlaceMontageHandling MontageHandling;
 };
 
 /**
@@ -282,14 +297,14 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
 	 * When playing a turn animation, if an animation in the opposite direction is triggered, scale by this play rate
 	 * Useful for quickly completing a turn that is now going the wrong way
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="2", ForceUnits="x"))
 	float PlayRateOnDirectionChange;
 
 	/**
 	 * Play rate to use when being clamped to max angle
 	 * Overall feel is improved if the character starts turning faster
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="2", ForceUnits="x"))
 	float PlayRateAtMaxAngle;
 
 	/**
