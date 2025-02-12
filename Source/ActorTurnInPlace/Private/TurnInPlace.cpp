@@ -530,6 +530,8 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		TurnInPlace(CurrentRotation, NewControlRotation);
 		return true;
 	}
+	
+	TurnOffset = 0.f;
 
 	// This is ACharacter::FaceRotation(), but with interpolation for when we start moving so it doesn't snap
 	if (!Character->GetCharacterMovement()->bOrientRotationToMovement)
