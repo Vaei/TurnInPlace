@@ -74,6 +74,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.0.4
+* Improved UPROPERTY descriptors for FTurnInPlaceParams and FTurnInPlaceAnimSet considerably
+
 ### 1.0.3
 * Fix bug where TurnOffset not reset when using strafe direct and moving
 

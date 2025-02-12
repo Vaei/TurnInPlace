@@ -262,19 +262,19 @@ bool UTurnInPlace::ShouldIgnoreRootMotionMontage_Implementation(const UAnimMonta
 	FTurnInPlaceParams Params = GetParams();
 
 	// Check if the montage itself is ignored
-	if (Params.IgnoreMontages.Contains(Montage))
+	if (Params.MontageHandling.IgnoreMontages.Contains(Montage))
 	{
 		return true;
 	}
 
 	// We generally don't want to consider any montages that are additive as playing a montage
-	if (Params.bIgnoreAdditiveMontages && Montage->IsValidAdditive())
+	if (Params.MontageHandling.bIgnoreAdditiveMontages && Montage->IsValidAdditive())
 	{
 		return true;
 	}
 
 	// Check if any montage anim tracks ignore this slot
-	for (const FName& Slot : Params.IgnoreMontageSlots)
+	for (const FName& Slot : Params.MontageHandling.IgnoreMontageSlots)
 	{
 		if (Montage->IsValidSlot(Slot))
 		{
