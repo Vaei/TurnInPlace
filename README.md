@@ -13,9 +13,6 @@
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
-> [!CAUTION]
-> Video Coming Soon!
-
 # Technique Comparison
 
 ## Actor-Based TIP
