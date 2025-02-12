@@ -264,8 +264,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	 *	
 	 * When we start moving we interpolate out of the turn in place at this rate
 	 * Interpolation occurs in a range of 0.0 to 1.0 so low values have a big impact on the rate
+	 *
+	 * At 1.0 it takes 1 second to interpolate out of the turn in place
+	 * At 2.0 it takes 0.5 seconds to interpolate out of the turn in place
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="3", Delta="0.1"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(UIMin="0", ClampMin="0", UIMax="3", Delta="0.1", ForceUnits="x"))
 	float MovingInterpOutRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
