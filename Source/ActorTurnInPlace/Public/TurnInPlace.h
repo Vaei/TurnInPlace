@@ -206,8 +206,9 @@ public:
 	 *
 	 * @param NewControlRotation The NewControlRotation from ACharacter::FaceRotation()
 	 * @param DeltaTime DeltaTime from ACharacter::FaceRotation()
+	 * @return True if FaceRotation() was handled and ACharacter should not call Super::FaceRotation()
 	 */
-	virtual void FaceRotation(FRotator NewControlRotation, float DeltaTime);
+	virtual bool FaceRotation(FRotator NewControlRotation, float DeltaTime);
 
 	/**
 	 * Must be called from UCharacterMovementComponent::PhysicsRotation() override

@@ -49,13 +49,13 @@ bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, flo
 		const float LastTurnOffset = TurnInPlace->TurnOffset;
 
 		// This is where the core logic of the TurnInPlace system is processed
-		TurnInPlace->FaceRotation(NewControlRotation, DeltaTime);
+		const bool bHandled = TurnInPlace->FaceRotation(NewControlRotation, DeltaTime);
 
 		// Replicate the turn offset to simulated proxies
 		TurnInPlace->PostTurnInPlace(LastTurnOffset);
 
 		// We handled the rotation
-		return true;
+		return bHandled;
 	}
 
 	// We did not handle rotation
