@@ -77,6 +77,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.0.3
+* Fix bug where TurnOffset not reset when using strafe direct and moving
+
 ### 1.0.2
 * Fixed bug where `ETurnInPlaceEnabledState` wasn't always handled properly
 * Added demo map buttons to preview `ETurnInPlaceEnabledState`
