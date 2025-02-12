@@ -77,6 +77,10 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.0.2
+* Fixed bug where `ETurnInPlaceEnabledState` wasn't always handled properly
+* Added demo map buttons to preview `ETurnInPlaceEnabledState`
+
 ### 1.0.1
 * Create component directly and unhide category to allow assignment to BP component
 

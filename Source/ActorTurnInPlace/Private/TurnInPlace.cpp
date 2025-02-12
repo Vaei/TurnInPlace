@@ -490,12 +490,12 @@ void UTurnInPlace::PostTurnInPlace(float LastTurnOffset)
 	CompressSimulatedTurnOffset(LastTurnOffset);
 }
 
-void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
+bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	// We only want to handle rotation if we are using FaceRotation() and not PhysicsRotation() based on our movement settings
 	if (GetTurnMethod() != ETurnMethod::FaceRotation)
 	{
-		return;
+		return true;
 	}
 
 	// Invalid requirements, exit
@@ -503,7 +503,22 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	{
 		TurnOffset = 0.f;
 		CurveValue = 0.f;
-		return;
+		return true;
+	}
+	
+	// Determine the correct params to use
+	FTurnInPlaceParams Params = GetParams();
+	
+	// Determine the state of turn in place
+	ETurnInPlaceEnabledState State = GetEnabledState(Params);
+	
+	// Turn in place is locked, we can't do anything
+	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
+	if (!bEnabled)
+	{
+		TurnOffset = 0.f;
+		CurveValue = 0.f;
+		return false;
 	}
 
 	// Cache the current rotation
@@ -513,7 +528,7 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	if (IsCharacterStationary())
 	{
 		TurnInPlace(CurrentRotation, NewControlRotation);
-		return;
+		return true;
 	}
 
 	// This is ACharacter::FaceRotation(), but with interpolation for when we start moving so it doesn't snap
@@ -533,7 +548,6 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			else
 			{
 				// Interpolate away the rotation because we are moving
-				const FTurnInPlaceParams Params = GetParams();
 				InterpOutAlpha = FMath::FInterpConstantTo(InterpOutAlpha, 1.f, DeltaTime, Params.MovingInterpOutRate);
 				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
 			}
@@ -553,6 +567,7 @@ void UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			Character->SetActorRotation(NewControlRotation);
 		}
 	}
+	return true;
 }
 
 bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
@@ -576,6 +591,21 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
 	FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
 	CurrentRotation.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): CurrentRotation"));
+
+	// Determine the correct params to use
+	FTurnInPlaceParams Params = GetParams();
+	
+	// Determine the state of turn in place
+	ETurnInPlaceEnabledState State = GetEnabledState(Params);
+	
+	// Turn in place is locked, we can't do anything
+	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
+	if (!bEnabled)
+	{
+		TurnOffset = 0.f;
+		CurveValue = 0.f;
+		return false;
+	}
 
 	// If the character is stationary, we can turn in place
 	if (IsCharacterStationary())
