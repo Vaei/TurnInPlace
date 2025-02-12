@@ -587,11 +587,6 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 		return true;
 	}
 
-	// Cache the updated component and current rotation
-	USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
-	FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
-	CurrentRotation.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): CurrentRotation"));
-
 	// Determine the correct params to use
 	FTurnInPlaceParams Params = GetParams();
 	
@@ -606,6 +601,11 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 		CurveValue = 0.f;
 		return false;
 	}
+
+	// Cache the updated component and current rotation
+	USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
+	FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
+	CurrentRotation.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): CurrentRotation"));
 
 	// If the character is stationary, we can turn in place
 	if (IsCharacterStationary())
