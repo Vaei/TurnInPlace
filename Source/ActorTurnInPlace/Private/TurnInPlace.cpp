@@ -5,9 +5,6 @@
 
 #include "GameplayTagContainer.h"
 #include "TurnInPlaceAnimInterface.h"
-#include "Components/CapsuleComponent.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
@@ -26,6 +23,10 @@
 #if WITH_SIMPLE_ANIMATION && UE_ENABLE_DEBUG_DRAWING
 #include "SimpleAnimLib.h"
 #endif
+
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(TurnInPlace)
 
@@ -98,12 +99,12 @@ void UTurnInPlace::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 
 ENetRole UTurnInPlace::GetLocalRole() const
 {
-	return IsValid(Character) ? Character->GetLocalRole() : ROLE_None;
+	return IsValid(GetOwner()) ? GetOwner()->GetLocalRole() : ROLE_None;
 }
 
 bool UTurnInPlace::HasAuthority() const
 {
-	return IsValid(Character) ? Character->HasAuthority() : false;
+	return IsValid(GetOwner()) ? GetOwner()->HasAuthority() : false;
 }
 
 void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
@@ -135,26 +136,26 @@ void UTurnInPlace::OnRegister()
 	
 	if (GetWorld() && GetWorld()->IsGameWorld())
 	{
-		SetUpdatedCharacter();
+		CacheUpdatedCharacter();
 	}
 }
 
 void UTurnInPlace::PostLoad()
 {
 	Super::PostLoad();
-	SetUpdatedCharacter();
+	CacheUpdatedCharacter();
 }
 
 void UTurnInPlace::InitializeComponent()
 {
 	Super::InitializeComponent();
-	SetUpdatedCharacter();
+	CacheUpdatedCharacter();
 }
 
-void UTurnInPlace::SetUpdatedCharacter()
+void UTurnInPlace::CacheUpdatedCharacter_Implementation()
 {
-	// Cache the owning character
-	Character = IsValid(GetOwner()) ? Cast<ACharacter>(GetOwner()) : nullptr;
+	PawnOwner = IsValid(GetOwner()) ? Cast<APawn>(GetOwner()) : nullptr;
+	MaybeCharacter = IsValid(GetOwner()) ? Cast<ACharacter>(GetOwner()) : nullptr;
 }
 
 void UTurnInPlace::BeginPlay()
@@ -162,7 +163,7 @@ void UTurnInPlace::BeginPlay()
 	Super::BeginPlay();
 
 	// Bind to the Mesh event to detect when the AnimInstance changes so we can recache it and check if it implements UTurnInPlaceAnimInterface
-	if (ensureAlways(IsValid(Character)))
+	if (ensureAlways(IsValid(GetOwner())))
 	{
 		if (GetMesh())
 		{
@@ -230,18 +231,22 @@ bool UTurnInPlace::IsTurningInPlace() const
 
 USkeletalMeshComponent* UTurnInPlace::GetMesh_Implementation() const
 {
-	return Character ? Character->GetMesh() : nullptr;
+	if (MaybeCharacter)
+	{
+		return MaybeCharacter->GetMesh();
+	}
+	return GetOwner() ? GetOwner()->FindComponentByClass<USkeletalMeshComponent>() : nullptr;
 }
 
 bool UTurnInPlace::IsCharacterStationary() const
 {
-	return Character->GetVelocity().IsNearlyZero();
+	return GetOwner()->GetVelocity().IsNearlyZero();
 }
 
 UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 {
 	// Check if the character is playing a networked root motion montage
-	if (bIsValidAnimInstance && Character && Character->IsPlayingNetworkedRootMotionMontage())
+	if (bIsValidAnimInstance && IsPlayingNetworkedRootMotionMontage())
 	{
 		// Get the root motion montage instance and return the montage
 		if (const FAnimMontageInstance* MontageInstance = AnimInstance->GetRootMotionMontageInstance())
@@ -250,6 +255,16 @@ UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 		}
 	}
 	return nullptr;
+}
+
+AController* UTurnInPlace::GetController_Implementation() const
+{
+	return IsValid(MaybeCharacter) ? MaybeCharacter->GetController() : nullptr;
+}
+
+bool UTurnInPlace::IsPlayingNetworkedRootMotionMontage_Implementation() const
+{
+	return IsValid(MaybeCharacter) && MaybeCharacter->IsPlayingNetworkedRootMotionMontage();
 }
 
 bool UTurnInPlace::ShouldIgnoreRootMotionMontage_Implementation(const UAnimMontage* Montage) const
@@ -285,6 +300,21 @@ bool UTurnInPlace::ShouldIgnoreRootMotionMontage_Implementation(const UAnimMonta
 	return false;
 }
 
+FVector UTurnInPlace::GetDebugDrawArrowLocation_Implementation(bool& bIsValidLocation) const
+{
+	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCapsuleComponent())
+	{
+		bIsValidLocation = false;
+		return FVector::ZeroVector;
+	}
+
+	bIsValidLocation = true;
+	
+	const float HalfHeight = MaybeCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FVector& ActorLocation = MaybeCharacter->GetActorLocation();
+	return ActorLocation - (FVector::UpVector * HalfHeight);
+}
+
 ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 {
 	// We want to pause turn in place when using root motion montages
@@ -303,7 +333,7 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 FGameplayTag UTurnInPlace::GetTurnModeTag_Implementation() const
 {
 	// Determine the turn mode tag based on the character's movement settings
-	const bool bIsStrafing = Character && Character->GetCharacterMovement() && !Character->GetCharacterMovement()->bOrientRotationToMovement;
+	const bool bIsStrafing = MaybeCharacter && MaybeCharacter->GetCharacterMovement() && !MaybeCharacter->GetCharacterMovement()->bOrientRotationToMovement;
 	return bIsStrafing ? FTurnInPlaceTags::TurnMode_Strafe : FTurnInPlaceTags::TurnMode_Movement;
 }
 
@@ -354,21 +384,21 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 bool UTurnInPlace::HasValidData() const
 {
 	// We need a valid AnimInstance and Character to proceed, and the anim instance must implement the TurnInPlaceAnimInterface
-	return bIsValidAnimInstance && IsValid(Character) && !Character->IsPendingKillPending() && Character->GetCharacterMovement();
+	return bIsValidAnimInstance && IsValid(GetOwner()) && !GetOwner()->IsPendingKillPending();
 }
 
 ETurnMethod UTurnInPlace::GetTurnMethod() const
 {
-	if (!HasValidData())
+	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCharacterMovement())
 	{
 		return ETurnMethod::None;
 	}
 
 	// ACharacter::FaceRotation handles turn in place when bOrientRotationToMovement is false, and we orient to control rotation
 	// This is an instant snapping turn that rotates to control rotation
-	if (!Character->GetCharacterMovement()->bOrientRotationToMovement)
+	if (!MaybeCharacter->GetCharacterMovement()->bOrientRotationToMovement)
 	{
-		if (Character->bUseControllerRotationPitch || Character->bUseControllerRotationYaw || Character->bUseControllerRotationRoll)
+		if (MaybeCharacter->bUseControllerRotationPitch || MaybeCharacter->bUseControllerRotationYaw || MaybeCharacter->bUseControllerRotationRoll)
 		{
 			return ETurnMethod::FaceRotation;
 		}
@@ -475,11 +505,11 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	LastAppliedTurnYaw = ActorTurnRotation;
 
 	// Apply the turn offset to the character
-	Character->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
+	GetOwner()->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
 	
 #if !UE_BUILD_SHIPPING
 	// Log the turn in place values for debugging if set to verbose
-	const FString NetRole = GetNetMode() == NM_Standalone ? TEXT("") : Character->GetLocalRole() == ROLE_Authority ? TEXT("[ Server ]") : TEXT("[ Client ]");
+	const FString NetRole = GetNetMode() == NM_Standalone ? TEXT("") : GetOwner()->GetLocalRole() == ROLE_Authority ? TEXT("[ Server ]") : TEXT("[ Client ]");
 	UE_LOG(LogTurnInPlace, Verbose, TEXT("%s cv %.2f  lcv %.2f  offset %.2f"), *NetRole, CurveValue, LastCurveValue, TurnOffset);
 #endif
 }
@@ -499,7 +529,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	}
 
 	// Invalid requirements, exit
-	if (!HasValidData())
+	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCharacterMovement())
 	{
 		TurnOffset = 0.f;
 		CurveValue = 0.f;
@@ -522,7 +552,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	}
 
 	// Cache the current rotation
-	const FRotator CurrentRotation = Character->GetActorRotation();
+	const FRotator CurrentRotation = GetOwner()->GetActorRotation();
 
 	// If the character is stationary, we can turn in place
 	if (IsCharacterStationary())
@@ -534,16 +564,16 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	TurnOffset = 0.f;
 
 	// This is ACharacter::FaceRotation(), but with interpolation for when we start moving so it doesn't snap
-	if (!Character->GetCharacterMovement()->bOrientRotationToMovement)
+	if (!MaybeCharacter->GetCharacterMovement()->bOrientRotationToMovement)
 	{
-		if (Character->bUseControllerRotationPitch || Character->bUseControllerRotationYaw || Character->bUseControllerRotationRoll)
+		if (MaybeCharacter->bUseControllerRotationPitch || MaybeCharacter->bUseControllerRotationYaw || MaybeCharacter->bUseControllerRotationRoll)
 		{
-			if (!Character->bUseControllerRotationPitch)
+			if (!MaybeCharacter->bUseControllerRotationPitch)
 			{
 				NewControlRotation.Pitch = CurrentRotation.Pitch;
 			}
 
-			if (!Character->bUseControllerRotationYaw)
+			if (!MaybeCharacter->bUseControllerRotationYaw)
 			{
 				NewControlRotation.Yaw = CurrentRotation.Yaw;
 			}
@@ -554,7 +584,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
 			}
 
-			if (!Character->bUseControllerRotationRoll)
+			if (!MaybeCharacter->bUseControllerRotationRoll)
 			{
 				NewControlRotation.Roll = CurrentRotation.Roll;
 			}
@@ -566,7 +596,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			}
 #endif
 
-			Character->SetActorRotation(NewControlRotation);
+			GetOwner()->SetActorRotation(NewControlRotation);
 		}
 	}
 	return true;
@@ -582,7 +612,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	}
 	
 	// Invalid requirements, exit
-	if (!HasValidData())
+	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCharacterMovement())
 	{
 		TurnOffset = 0.f;
 		CurveValue = 0.f;
@@ -617,15 +647,15 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 			// Rotate towards the last input vector
 			TurnInPlace(CurrentRotation, LastInputVector.Rotation());
 		}
-		else if (CharacterMovement->bUseControllerDesiredRotation && Character->Controller)
+		else if (CharacterMovement->bUseControllerDesiredRotation && MaybeCharacter->Controller)
 		{
 			// Rotate towards the controller's desired rotation
-			TurnInPlace(CurrentRotation, Character->Controller->GetDesiredRotation());
+			TurnInPlace(CurrentRotation, MaybeCharacter->Controller->GetDesiredRotation());
 		}
-		else if (!Character->Controller && CharacterMovement->bRunPhysicsWithNoController && CharacterMovement->bUseControllerDesiredRotation)
+		else if (!MaybeCharacter->Controller && CharacterMovement->bRunPhysicsWithNoController && CharacterMovement->bUseControllerDesiredRotation)
 		{
 			// We have no controller, but we can try to find one
-			if (AController* ControllerOwner = Cast<AController>(Character->GetOwner()))
+			if (AController* ControllerOwner = Cast<AController>(MaybeCharacter->GetOwner()))
 			{
 				// Rotate towards the controller's desired rotation
 				TurnInPlace(CurrentRotation, ControllerOwner->GetDesiredRotation());
@@ -735,7 +765,7 @@ int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float An
 void UTurnInPlace::DebugRotation() const
 {
 #if UE_ENABLE_DEBUG_DRAWING
-	if (!IsValid(Character))
+	if (!IsValid(GetOwner()))
 	{
 		return;
 	}
@@ -747,42 +777,45 @@ void UTurnInPlace::DebugRotation() const
 	if (TurnInPlaceCvars::bDebugTurnOffset && GEngine)
 	{
 		// Don't overwrite other character's screen messages
-		const uint64 DebugKey = Character->GetUniqueID() + 1569;
+		const uint64 DebugKey = GetOwner()->GetUniqueID() + 1569;
 		FRandomStream ColorStream(DebugKey);
 		FColor DebugColor = FColor(ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255));
-		const FString CharacterRole = Character->HasAuthority() ? TEXT("Server") : Character->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
+		const FString CharacterRole = GetOwner()->HasAuthority() ? TEXT("Server") : GetOwner()->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
 		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, DebugColor, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
 	}
 
 	// We only want each character on screen to draw this once, so exclude servers from drawing this for the autonomous proxy
-	if (Character->GetRemoteRole() != ROLE_AutonomousProxy)
+	if (GetOwner()->GetRemoteRole() != ROLE_AutonomousProxy)
 	{
 		// Draw Debug Arrows
-		const float HalfHeight = Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-		const FVector& ActorLocation = Character->GetActorLocation();
-		const FVector Location = ActorLocation - (FVector::UpVector * HalfHeight);
+		bool bValidLocation = false;
+		const FVector Location = GetDebugDrawArrowLocation(bValidLocation);
+		if (!bValidLocation)
+		{
+			return;
+		}
 
 		// Actor Rotation Vector
 		if (TurnInPlaceCvars::bDebugActorDirectionArrow)
 		{
-			DrawDebugDirectionalArrow(Character->GetWorld(), Location,
-				Location + (Character->GetActorForwardVector() * 200.f), 40.f, FColor(199, 10, 143),
+			DrawDebugDirectionalArrow(GetOwner()->GetWorld(), Location,
+				Location + (GetOwner()->GetActorForwardVector() * 200.f), 40.f, FColor(199, 10, 143),
 				false, -1, 0, 2.f);
 		}
 
 		// Control Rotation Vector
-		if (TurnInPlaceCvars::bDebugControlDirectionArrow)
+		if (TurnInPlaceCvars::bDebugControlDirectionArrow && GetController())
 		{
-			DrawDebugDirectionalArrow(Character->GetWorld(), Location,
-				Location + (FRotator(0.f, Character->GetControlRotation().Yaw, 0.f).Vector() * 200.f), 40.f,
+			DrawDebugDirectionalArrow(GetOwner()->GetWorld(), Location,
+				Location + (FRotator(0.f, GetController()->GetControlRotation().Yaw, 0.f).Vector() * 200.f), 40.f,
 				FColor::Black, false, -1, 0, 2.f);
 		}
 
 		// Turn Rotation Vector
 		if (TurnInPlaceCvars::bDebugTurnOffsetArrow)
 		{
-			const FVector TurnVector = (Character->GetActorRotation() + FRotator(0.f, TurnOffset, 0.f)).GetNormalized().Vector();
-			DrawDebugDirectionalArrow(Character->GetWorld(), Location, Location + (TurnVector * 200.f),
+			const FVector TurnVector = (GetOwner()->GetActorRotation() + FRotator(0.f, TurnOffset, 0.f)).GetNormalized().Vector();
+			DrawDebugDirectionalArrow(GetOwner()->GetWorld(), Location, Location + (TurnVector * 200.f),
 				40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
 		}
 	}
@@ -794,10 +827,10 @@ void UTurnInPlace::DebugServerPhysicsBodies() const
 {
 #if UE_ENABLE_DEBUG_DRAWING
 	// Draw Server's physics bodies
-	if (bDrawServerPhysicsBodies && Character->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
+	if (bDrawServerPhysicsBodies && PawnOwner && GetOwner()->GetLocalRole() == ROLE_Authority && GetNetMode() != NM_Standalone)
 	{
 #if WITH_SIMPLE_ANIMATION
-		USimpleAnimLib::DrawPawnDebugPhysicsBodies(Character, GetMesh(), true, false, false);
+		USimpleAnimLib::DrawPawnDebugPhysicsBodies(PawnOwner, GetMesh(), true, false, false);
 #else
 		if (!bHasWarnedSimpleAnimation)
 		{
