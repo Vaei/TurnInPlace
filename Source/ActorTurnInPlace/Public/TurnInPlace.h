@@ -9,8 +9,6 @@
 
 #define TURN_ROTATOR_TOLERANCE	(1.e-3f)
 
-class ACharacter;
-class UCharacterMovementComponent;
 class UAnimInstance;
 struct FGameplayTag;
 /**
@@ -39,7 +37,11 @@ public:
 
 	/** Owning character that we are turning in place */
 	UPROPERTY(Transient, DuplicateTransient, BlueprintReadOnly, Category=Turn)
-	TObjectPtr<ACharacter> Character;
+	TObjectPtr<APawn> PawnOwner;
+	
+	/** Owning character that we are turning in place */
+	UPROPERTY(Transient, DuplicateTransient, BlueprintReadOnly, Category=Turn)
+	TObjectPtr<ACharacter> MaybeCharacter;
 
 	/** AnimInstance of the owning character's Mesh */
 	UPROPERTY(Transient, DuplicateTransient, BlueprintReadOnly, Category=Turn)
@@ -83,7 +85,9 @@ public:
 	virtual void PostLoad() override;
 	virtual void InitializeComponent() override;
 
-	virtual void SetUpdatedCharacter();
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	void CacheUpdatedCharacter();
+	
 	virtual void BeginPlay() override;
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 
@@ -115,6 +119,15 @@ public:
 	UAnimMontage* GetCurrentNetworkRootMotionMontage() const;
 
 	/**
+	 * Determine if we are under the control of a root motion montage
+	 * Generally this is a call to ACharacter::IsPlayingNetworkedRootMotionMontage()
+	 * You must override this if not using ACharacter
+	 * @return True if under the control of a root motion montage
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	bool IsPlayingNetworkedRootMotionMontage() const;
+	
+	/**
 	 * Optionally override determine when to ignore root motion montages
 	 * @param Montage The montage to check
 	 * @return True if the montage should be ignored
@@ -123,11 +136,26 @@ public:
 	bool ShouldIgnoreRootMotionMontage(const UAnimMontage* Montage) const;
 
 	/**
+	 * This function is primarily used for debugging, if the controller doesn't exist debugging won't work
+	 * @return The controller if one exists
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	AController* GetController() const;
+	
+	/**
 	 * Get the character's mesh component that is used for turn in place
 	 * @return The character's mesh
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category=Turn)
 	USkeletalMeshComponent* GetMesh() const;
+
+	/**
+	 * Generally this is where the character's feet are
+	 * @param bIsValidLocation
+	 * @return The location to draw debug arrows from
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	FVector GetDebugDrawArrowLocation(bool& bIsValidLocation) const;
 	
 	/**
 	 * Optionally override the Turn In Place parameters to force turn in place to be enabled or disabled

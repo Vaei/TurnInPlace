@@ -76,6 +76,14 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### _Future Updates_
+* Custom Gravity
+* Mover 2.0 out of the box support
+
+### 1.1.0
+* Add support for `APawn` without `ACharacter` + `UCharacterMovementComponent`
+	* Extremely advanced -- [Read the Wiki entry](https://github.com/Vaei/TurnInPlace/wiki/APawn-Support)
+
 ### 1.0.4
 * Improved UPROPERTY descriptors for FTurnInPlaceParams and FTurnInPlaceAnimSet considerably
 
