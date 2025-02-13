@@ -9,6 +9,8 @@
 
 #define TURN_ROTATOR_TOLERANCE	(1.e-3f)
 
+class ACharacter;
+class UCharacterMovementComponent;
 class UAnimInstance;
 struct FGameplayTag;
 /**
