@@ -80,7 +80,7 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### 1.2.0
 * Backport demo content for 5.3
 	* Tidied it up a bit too
-* Fix included BP_GameMode to not unavailable class
+* Fix included BP_GameMode, was referencing unavailable class
 * Remove `CacheUpdatedCharacter()` from `UTurnInPlace::PostLoad()`, fails `check` calling `BlueprintNativeEvent`
 
 ### 1.1.0
