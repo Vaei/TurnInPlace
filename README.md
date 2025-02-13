@@ -50,8 +50,6 @@ Primarily this setup is seen in LyraStarterGame. It is inadequate and causes sig
 
 This technique negates the rotation from the character's mesh by applying a `RootYawOffset` to the skeleton's root bone, using the `Rotate Root Bone` anim graph node.
 
-Primarily this setup is seen in LyraStarterGame. Lets start with the conclusion: It is inadequate and causes significant issues everywhere it touches.
-
 ### Mesh Smoothing
 
 Simulated proxies are characters other than your own that you see in multiplayer games. Simulated proxies receive a very simplistic condensed location and rotation from the server, then applies smoothing directly to the mesh so that you don't notice the considerable jitter due to intermittent replication and compression of these properties.
