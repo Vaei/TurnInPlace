@@ -8,8 +8,7 @@
 > <br>Install this as a project plugin, not an engine plugin
 
 > [!TIP]
-> Content requires UE5.5+, however tested and compiling on 5.2 and above
-> <br>Content is not required, provided you can view the content in a 5.5 project
+> Supports UE5.3+
 
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
@@ -77,6 +76,12 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### _Future Updates_
 * Custom Gravity
 * Mover 2.0 out of the box support
+
+### 1.2.0
+* Backport demo content for 5.3
+	* Tidied it up a bit too
+* Fix included BP_GameMode to not unavailable class
+* Remove `CacheUpdatedCharacter()` from `UTurnInPlace::PostLoad()`, fails `check` calling `BlueprintNativeEvent`
 
 ### 1.1.0
 * Add support for `APawn` without `ACharacter` + `UCharacterMovementComponent`
