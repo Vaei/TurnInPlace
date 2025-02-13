@@ -60,7 +60,7 @@ To counteract this, you must switch `NetworkSmoothingMode` from the default `Exp
 
 The larger issue with using `Linear` over `Exponential` isn't rotation, its translation. Linear translation looks truly poor. Your sim proxies constantly get _yoinked_ backwards when they come to a stop and the start doesn't look great either!
 
-This leaves you making serious sacrifices for something that is entirely _not important_ affecting every aspect of your game. One option is to modify the engine to decouple the `NetworkSmoothingMode` however that is very difficult and can be prone to issues that are extremely difficult to diagnose.
+This leaves you making serious sacrifices for something that is entirely _not important_ affecting every aspect of your game. One option is to modify the engine to decouple the `NetworkSmoothingMode` so that you can set Translation separately from Rotation, however that is very difficult and can be prone to issues that are extremely difficult to diagnose because they are tightly interconnected.
 
 ### Locomotion / Anim Compensation
 
