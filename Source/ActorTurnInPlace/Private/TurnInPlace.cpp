@@ -140,12 +140,6 @@ void UTurnInPlace::OnRegister()
 	}
 }
 
-void UTurnInPlace::PostLoad()
-{
-	Super::PostLoad();
-	CacheUpdatedCharacter();
-}
-
 void UTurnInPlace::InitializeComponent()
 {
 	Super::InitializeComponent();

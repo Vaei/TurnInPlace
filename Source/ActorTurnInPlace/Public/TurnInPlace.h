@@ -84,7 +84,6 @@ public:
 	void OnRep_SimulatedTurnOffset();
 
 	virtual void OnRegister() override;
-	virtual void PostLoad() override;
 	virtual void InitializeComponent() override;
 
 	UFUNCTION(BlueprintNativeEvent, Category=Turn)
