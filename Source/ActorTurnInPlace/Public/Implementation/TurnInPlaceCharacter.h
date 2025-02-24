@@ -21,11 +21,7 @@ class ACTORTURNINPLACE_API ATurnInPlaceCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	/**
-	 * Turn in place component
-	 * We do not create it here, but use FindComponentByClass() in PreInitializeComponents() that it can be added to
-	 * the character in Blueprint instead to allow for Blueprint derived components
-	 */
+	/** Turn in place component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Turn)
 	TObjectPtr<UTurnInPlace> TurnInPlace;
 
