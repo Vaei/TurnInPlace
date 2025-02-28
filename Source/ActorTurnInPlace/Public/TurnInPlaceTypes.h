@@ -76,6 +76,28 @@ enum class ETurnInPlaceEnabledState : uint8
 };
 
 /**
+ * How to update the turn in place curve values
+ * This allows server to optionally update without playing actual animations
+ */
+UENUM(BlueprintType)
+enum class ETurnAnimUpdateMode : uint8
+{
+	Animation			UMETA(Tooltip = "Update the turn in place from actual animations"),
+	Pseudo				UMETA(Tooltip = "Update the turn in place from pseudo-evaluation of animations"),
+};
+
+/**
+ * State of the pseudo animation evaluation
+ */
+UENUM(BlueprintType)
+enum class ETurnPseudoAnimState : uint8
+{
+	Idle,
+	TurnInPlace,
+	Recovery,
+};
+
+/**
  * How to select the turn animation based on the turn angle
  */
 UENUM(BlueprintType)
@@ -312,7 +334,8 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
 
 	/**
 	 * Don't change the play rate when no longer at max angle for the in-progress turn animation
-	 * This helps when the player is using a mouse because it often causes jittering play rate
+	 * This helps when the player is using a mouse because it often causes play rate jitter
+	 * This occurs because the mouse constantly re-enters the max turn angle and then exits it, rapidly
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	bool bMaintainMaxAnglePlayRate;
@@ -338,6 +361,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 	FTurnInPlaceCurveValues()
 		: RemainingTurnYaw(0.f)
 		, TurnYawWeight(0.f)
+	{}
+
+	FTurnInPlaceCurveValues(float InRemainingTurnYaw, float InTurnYawWeight)
+		: RemainingTurnYaw(InRemainingTurnYaw)
+		, TurnYawWeight(InTurnYawWeight)
 	{}
 
 	/**
@@ -430,6 +458,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 
 	FTurnInPlaceAnimGraphOutput()
 		: TurnOffset(0.f)
+		, bPlayTurnAnim(false)
 		, bWantsToTurn(false)
 		, bWantsTurnRecovery(false)
 		, bTransitionStartToCycleFromTurn(false)
@@ -441,6 +470,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 	float TurnOffset;
 
 	/** True if we should transition to a turn in place anim state */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bPlayTurnAnim;
+
+	/** True if we want to transition to a turn in place anim state */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bWantsToTurn;
 
@@ -455,4 +488,47 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 	/** True if we should abort the stop state and transition into idle because needs to turn in place */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bTransitionStopToIdleForTurn;
+};
+
+/**
+ * Data updated by anim graph and used by the turn in place system
+ */
+USTRUCT(BlueprintType)
+struct ACTORTURNINPLACE_API FTurnInPlaceGraphNodeData
+{
+	GENERATED_BODY()
+
+	FTurnInPlaceGraphNodeData()
+		: StepSize(0)
+		, AnimStateTime(0.f)
+		, TurnPlayRate(1.f)
+		, bHasReachedMaxTurnAngle(false)
+		, bIsTurningRight(true)
+		, bIsRecoveryTurningRight(true)
+	{}
+
+	/** Current step size to select animation from */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	int32 StepSize;
+
+	/** Current anim state time */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	float AnimStateTime;
+	
+	/** Current turn play rate */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	float TurnPlayRate;
+
+	/** Has ever reached max turn angle during the current turn */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bHasReachedMaxTurnAngle;
+
+	/** Current turn is to the right */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bIsTurningRight;
+
+	/** Current recovery is to the right */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bIsRecoveryTurningRight;
+
 };

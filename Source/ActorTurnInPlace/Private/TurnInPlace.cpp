@@ -24,6 +24,7 @@
 #include "SimpleAnimLib.h"
 #endif
 
+#include "TurnInPlaceStatics.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -371,8 +372,24 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 		return {};
 	}
 
+	// Dedicated server might want to use pseudo anim state instead of playing actual animations
+	if (WantsPseudoAnimState())
+	{
+		if (PseudoAnim)
+		{
+			const float Yaw = PseudoAnim->EvaluateCurveData(Settings.TurnYawCurveName, PseudoNodeData.AnimStateTime);
+			const float Weight = PseudoAnim->EvaluateCurveData(Settings.TurnWeightCurveName, PseudoNodeData.AnimStateTime);
+			return { Yaw, Weight };
+		}
+	}
+
 	// Get the current turn in place curve values from the animation blueprint
 	return ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceCurveValues(AnimInstance);
+}
+
+bool UTurnInPlace::WantsPseudoAnimState() const
+{
+	return GetNetMode() == NM_DedicatedServer && DedicatedServerAnimUpdateMode == ETurnAnimUpdateMode::Pseudo;
 }
 
 bool UTurnInPlace::HasValidData() const
@@ -699,6 +716,78 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	}
 
 	return AnimGraphData;
+}
+
+void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+	const FTurnInPlaceAnimGraphOutput& TurnOutput)
+{
+	// Dedicated server might want to use pseudo anim state instead of playing actual animations
+	if (!WantsPseudoAnimState())
+	{
+		return;
+	}
+
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	// Update pseudo state on dedicated server
+	const FTurnInPlaceAnimSet& AnimSet = TurnData.AnimSet;
+
+	switch (PseudoAnimState)
+	{
+	case ETurnPseudoAnimState::Idle:
+		if (TurnOutput.bWantsToTurn)
+		{
+			PseudoAnimState = ETurnPseudoAnimState::TurnInPlace;
+
+			// SetupTurnAnim()
+			PseudoNodeData.StepSize = TurnData.StepSize;
+			PseudoNodeData.bIsTurningRight = TurnData.bTurnRight;
+
+			// SetupTurnInPlace()
+			PseudoNodeData.AnimStateTime = 0.f;
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
+			PseudoNodeData.bHasReachedMaxTurnAngle = false;
+			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnData, AnimSet);
+		}
+		break;
+	case ETurnPseudoAnimState::TurnInPlace:
+		if (TurnOutput.bWantsTurnRecovery)
+		{
+			PseudoAnimState = ETurnPseudoAnimState::Recovery;
+
+			// SetupTurnRecovery() -- AnimStateTime is already carried over from TurnInPlace
+			PseudoNodeData.bIsRecoveryTurningRight = PseudoNodeData.bIsTurningRight;
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
+		}
+		else
+		{
+			// UpdateTurnInPlace()
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
+			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
+				PseudoNodeData.AnimStateTime, DeltaTime, PseudoNodeData.TurnPlayRate);
+			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnData, AnimSet);
+		}
+		break;
+	case ETurnPseudoAnimState::Recovery:
+		{
+			// UpdateTurnInPlaceRecovery()
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
+			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
+							PseudoNodeData.AnimStateTime, DeltaTime, 1.f);  // Recovery plays at 1x speed
+			if (PseudoNodeData.AnimStateTime >= PseudoAnim->GetPlayLength())
+			{
+				PseudoAnimState = ETurnPseudoAnimState::Idle;
+
+				// SetupIdle()
+				PseudoNodeData.TurnPlayRate = 1.f;
+				PseudoNodeData.bHasReachedMaxTurnAngle = false;
+			}
+		}
+		break;
+	}
 }
 
 int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight)

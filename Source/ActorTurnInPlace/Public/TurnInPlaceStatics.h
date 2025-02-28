@@ -73,6 +73,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(WorldContext="WorldContextObject"))
 	static void DebugTurnInPlace(UObject* WorldContextObject, bool bDebug);
 
+	UFUNCTION(BlueprintPure, Category=Animation, meta=(BlueprintThreadSafe))
+	static UAnimSequence* GetTurnInPlaceAnimation(const FTurnInPlaceAnimSet& AnimSet, const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery = false);
+	
 public:
 	/**
 	 * Update anim graph data for turn in place by retrieving data from the game thread. Call from NativeUpdateAnimation or BlueprintUpdateAnimation.
@@ -92,7 +95,7 @@ public:
 	 * @return The processed turn in place data with necessary output values for the anim graph
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DisplayName="Thread Safe Update Turn In Place"))
-	static FTurnInPlaceAnimGraphOutput ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGraphData& AnimGraphData,
+	static FTurnInPlaceAnimGraphOutput ThreadSafeUpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, const FTurnInPlaceAnimGraphData& AnimGraphData,
 		bool bCanUpdateTurnInPlace, bool bIsStrafing);
 
 	/**
@@ -103,4 +106,11 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DefaultToSelf="AnimInstance", DisplayName="Thread Safe Update Turn In Place Curve Values"))
 	static FTurnInPlaceCurveValues ThreadSafeUpdateTurnInPlaceCurveValues(const UAnimInstance* AnimInstance, const FTurnInPlaceAnimGraphData& AnimGraphData);
+
+	/**
+	 * Call from TurnInPlace Node Update Function
+	 */
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DisplayName="Thread Safe Update Turn In Place Node"))
+	static void ThreadSafeUpdateTurnInPlaceNode(UPARAM(ref)FTurnInPlaceGraphNodeData& NodeData, const FTurnInPlaceAnimGraphData& AnimGraphData, const
+		FTurnInPlaceAnimSet& AnimSet);
 };
