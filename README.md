@@ -77,6 +77,18 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Custom Gravity
 * Mover 2.0 out of the box support
 
+### 1.3.0
+_Significant update to `ABP_Manny_Turn`, consider using perforce to diff -- these changes are only required if you need the new pseudo animation system_
+
+* Introduced pseudo animation system for dedicated servers that don't refresh bones (and don't run any turn anim graph states at all)
+* Updated `ABP_Manny_Turn` to support updated system that has been condensed with pseudo anim states in mind
+* Condensed multiple anim graph variables into `FTurnInPlaceGraphNodeData AnimNodeData`
+* Condensed anim graph functionality into single C++ nodes where appropriate
+	* `GetTurnInPlaceAnimation()`
+	* `ThreadSafeUpdateTurnInPlaceNode()`
+* Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
+	* This is likely inconsequential but added for sake of completion and consistency
+
 ### 1.2.0
 * Backport demo content for 5.3
 	* Tidied it up a bit too

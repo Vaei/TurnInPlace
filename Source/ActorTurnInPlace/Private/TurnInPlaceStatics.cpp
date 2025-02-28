@@ -100,6 +100,14 @@ void UTurnInPlaceStatics::DebugTurnInPlace(UObject* WorldContextObject, bool bDe
 #endif
 }
 
+UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation(const FTurnInPlaceAnimSet& AnimSet,
+	const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery)
+{
+	const bool bTurnRight = bRecovery ? NodeData.bIsRecoveryTurningRight : NodeData.bIsTurningRight;
+	const TArray<UAnimSequence*>& TurnAnimations = bTurnRight ? AnimSet.RightTurns : AnimSet.LeftTurns;
+	return TurnAnimations.IsValidIndex(NodeData.StepSize) ? TurnAnimations[NodeData.StepSize] : nullptr;
+}
+
 void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPlaceAnimGraphData& AnimGraphData,
 	bool& bCanUpdateTurnInPlace)
 {
@@ -115,7 +123,7 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPl
 	bCanUpdateTurnInPlace = true;
 }
 
-FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(
+FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime,
 	const FTurnInPlaceAnimGraphData& AnimGraphData, bool bCanUpdateTurnInPlace, bool bIsStrafing)
 {
 	FTurnInPlaceAnimGraphOutput Output;
@@ -135,6 +143,12 @@ FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(
 	Output.bTransitionStartToCycleFromTurn = bIsStrafing && FMath::Abs(AnimGraphData.TurnOffset) > AnimGraphData.TurnAngles.MinTurnAngle;
 	Output.bTransitionStopToIdleForTurn = AnimGraphData.bIsTurning || AnimGraphData.bWantsToTurn;
 
+	// Play turn anim
+	Output.bPlayTurnAnim = Output.bWantsToTurn && !TurnInPlace->WantsPseudoAnimState();
+	
+	// Update pseudo anim state
+	TurnInPlace->ThreadSafeUpdateTurnInPlace(DeltaTime, AnimGraphData, Output);
+
 	return Output;
 }
 
@@ -147,4 +161,14 @@ FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveVal
 	CurveValues.TurnYawWeight = AnimInstance->GetCurveValue(AnimGraphData.Settings.TurnWeightCurveName);
 
 	return CurveValues;
+}
+
+void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(FTurnInPlaceGraphNodeData& NodeData,
+	const FTurnInPlaceAnimGraphData& AnimGraphData, const FTurnInPlaceAnimSet& AnimSet)
+{
+	// Retain play rate at max angle for this current turn, if we ever reached it
+	// This prevents micro jitters with mouse turning when it constantly re-enters max angle
+	bool bHasReachedMaxAngle;
+	NodeData.TurnPlayRate = GetTurnInPlacePlayRate_ThreadSafe(AnimGraphData, NodeData.bHasReachedMaxTurnAngle, bHasReachedMaxAngle);
+	NodeData.bHasReachedMaxTurnAngle = AnimSet.bMaintainMaxAnglePlayRate && bHasReachedMaxAngle;
 }

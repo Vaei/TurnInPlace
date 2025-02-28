@@ -32,6 +32,13 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	bool bDrawServerPhysicsBodies = false;
+
+	/**
+	 * Allows server to optionally update without playing actual animations
+	 * Pseudo is helpful if we don't want to refresh bones on tick for the mesh for performance reasons
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	ETurnAnimUpdateMode DedicatedServerAnimUpdateMode = ETurnAnimUpdateMode::Animation;
 	
 	/** Turn in place settings */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
@@ -199,6 +206,19 @@ public:
 	/** When the character starts moving, interpolate away the turn in place */
 	UPROPERTY(BlueprintReadOnly, Category=Turn)
 	float InterpOutAlpha;
+	
+	/**
+	 * Current pseudo anim state on dedicated server
+	 * Must never be modified on game thread
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	ETurnPseudoAnimState PseudoAnimState;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	FTurnInPlaceGraphNodeData PseudoNodeData;
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	UAnimSequence* PseudoAnim;
 
 private:
 	/** Whether the last update had a valid curve value -- used to check if becoming relevant again this frame */
@@ -215,6 +235,9 @@ public:
 	/** Get the current turn in place curve values that were cached by the animation graph */
 	FTurnInPlaceCurveValues GetCurveValues() const;
 
+	/** Dedicated server updates the turn in place curve values manually */
+	virtual bool WantsPseudoAnimState() const;
+	
 	/** @return True if the TurnInPlace component has valid data */
 	virtual bool HasValidData() const;
 
@@ -252,6 +275,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Turn)
 	FTurnInPlaceAnimGraphData UpdateAnimGraphData() const;
 
+	/**
+	 * Called from Anim Graph BlueprintThreadSafeUpdateAnimation or NativeThreadSafeUpdateAnimation
+	 * Thread safe only, do not update anything that has a basis on the game thread
+	 */
+	virtual void ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+		const FTurnInPlaceAnimGraphOutput& TurnOutput);
+	
 protected:
 	/** Used to determine which step size to use based on the current TurnOffset and the last FTurnInPlaceParams */
 	static int32 DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight);
