@@ -23,8 +23,13 @@ ATurnInPlaceCharacter::ATurnInPlaceCharacter(const FObjectInitializer& ObjectIni
 
 	if (GetMesh())
 	{
-		// Server cannot turn in place with the default option (AlwaysTickPose), so we need to change it
-		// You may want to experiment with these options for games with large character counts, as it can affect performance
+		/*
+		 * Server cannot turn in place with the default option (AlwaysTickPose), so we need to change it.
+		 * You may want to experiment with these options for games with large character counts, as it can affect performance
+		 *
+		 * @NOTE: You can use UTurnInPlace::DedicatedServerAnimUpdateMode::Pseudo to avoid ticking the mesh on the server instead
+		 * This will make the server run a pseudo anim state instead of playing actual animations
+         */
 		GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	}
 }
