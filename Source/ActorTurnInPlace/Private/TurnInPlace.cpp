@@ -110,6 +110,8 @@ bool UTurnInPlace::HasAuthority() const
 
 void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::CompressSimulatedTurnOffset);
+	
 	// Compress result and replicate turn offset to simulated proxy
 	if (HasAuthority() && GetNetMode() != NM_Standalone)
 	{
@@ -123,6 +125,8 @@ void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
 
 void UTurnInPlace::OnRep_SimulatedTurnOffset()
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::OnRep_SimulatedTurnOffset);
+	
 	// Decompress the replicated value from short to float, and apply it to the TurnInPlace component
 	// This keeps simulated proxies in sync with the server and allows them to turn in place
 	if (GetLocalRole() == ROLE_SimulatedProxy && HasValidData())
@@ -264,6 +268,8 @@ bool UTurnInPlace::IsPlayingNetworkedRootMotionMontage_Implementation() const
 
 bool UTurnInPlace::ShouldIgnoreRootMotionMontage_Implementation(const UAnimMontage* Montage) const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ShouldIgnoreRootMotionMontage);
+	
 	if (!HasValidData())
 	{
 		return false;
@@ -429,6 +435,8 @@ bool UTurnInPlace::HasTurnOffsetChanged(float CurrentValue, float LastValue)
 
 void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::TurnInPlace);
+
 	// Determine the correct params to use
 	FTurnInPlaceParams Params = GetParams();
 	
@@ -533,6 +541,8 @@ void UTurnInPlace::PostTurnInPlace(float LastTurnOffset)
 
 bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::FaceRotation);
+	
 	// We only want to handle rotation if we are using FaceRotation() and not PhysicsRotation() based on our movement settings
 	if (GetTurnMethod() != ETurnMethod::FaceRotation)
 	{
@@ -616,6 +626,8 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovement, float DeltaTime,
 	bool bRotateToLastInputVector, const FVector& LastInputVector)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::PhysicsRotation);
+
 	// We only want to handle rotation if we are using PhysicsRotation() and not FaceRotation() based on our movement settings
 	if (GetTurnMethod() != ETurnMethod::PhysicsRotation)
 	{
@@ -682,6 +694,8 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 
 FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdateAnimGraphData);
+	
 	FTurnInPlaceAnimGraphData AnimGraphData;
 	if (!HasValidData())
 	{
@@ -721,6 +735,8 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
 	const FTurnInPlaceAnimGraphOutput& TurnOutput)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
+	
 	// Dedicated server might want to use pseudo anim state instead of playing actual animations
 	if (!WantsPseudoAnimState())
 	{
@@ -792,6 +808,8 @@ void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPla
 
 int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::DetermineStepSize);
+	
 	// Cache the turn angle and step angle
 	const float TurnAngle = Angle;
 	const float StepAngle = FMath::Abs(TurnAngle) + Params.SelectOffset;
