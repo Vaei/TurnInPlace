@@ -86,6 +86,9 @@ _Significant update to `ABP_Manny_Turn`, consider using perforce to diff -- thes
 	* Condensed anim graph functionality into single C++ nodes where appropriate
 		* `GetTurnInPlaceAnimation()`
 		* `ThreadSafeUpdateTurnInPlaceNode()`
+* Introduced simulated animation state for servers to send their animation state to simulated proxies to keep them in sync
+	* Enable `bReplicateSimulatedAnimState`
+	* This is good for low net update rates and low tick rates, or any time the simulated proxies find themselves unable to complete a turn for some time
 * Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
 	* This is likely inconsequential but added for sake of completion and consistency
 * Add cheat CVar `p.Turn.Override` for debugging/isolation testing

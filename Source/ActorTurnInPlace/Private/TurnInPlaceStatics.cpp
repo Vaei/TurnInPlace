@@ -120,6 +120,7 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPl
 	}
 	
 	AnimGraphData = TurnInPlace->UpdateAnimGraphData();
+	TurnInPlace->PostUpdateAnimGraphData(AnimGraphData);
 	bCanUpdateTurnInPlace = true;
 }
 
@@ -145,7 +146,7 @@ FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(UTu
 
 	// Play turn anim
 	Output.bPlayTurnAnim = Output.bWantsToTurn && !TurnInPlace->WantsPseudoAnimState();
-	
+
 	// Update pseudo anim state
 	TurnInPlace->ThreadSafeUpdateTurnInPlace(DeltaTime, AnimGraphData, Output);
 
