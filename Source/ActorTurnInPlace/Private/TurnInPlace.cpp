@@ -66,6 +66,15 @@ namespace TurnInPlaceCvars
 		TEXT("Draw BLACK debug arrow showing the direction the control rotation is facing"),
 		ECVF_Default);
 #endif
+
+#if !UE_BUILD_SHIPPING
+	static int32 OverrideTurnInPlace = 0;
+	FAutoConsoleVariableRef CVarOverrideTurnInPlace(
+		TEXT("p.Turn.Override"),
+		OverrideTurnInPlace,
+		TEXT("Override Turn In Place. 0 = Default, 1 = Force Enabled, 2 = Force Locked, 3 = Force Paused (Disabled)"),
+		ECVF_Cheat);
+#endif
 }
 
 UTurnInPlace::UTurnInPlace(const FObjectInitializer& ObjectInitializer)
@@ -318,6 +327,19 @@ FVector UTurnInPlace::GetDebugDrawArrowLocation_Implementation(bool& bIsValidLoc
 
 ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 {
+#if !UE_BUILD_SHIPPING
+	if (TurnInPlaceCvars::OverrideTurnInPlace > 0)
+	{
+		switch (TurnInPlaceCvars::OverrideTurnInPlace)
+		{
+		case 1: return ETurnInPlaceOverride::ForceEnabled;
+		case 2: return ETurnInPlaceOverride::ForceLocked;
+		case 3: return ETurnInPlaceOverride::ForcePaused;
+		default: break;
+		}
+	}
+#endif
+	
 	// We want to pause turn in place when using root motion montages
 	if (UAnimMontage* Montage = GetCurrentNetworkRootMotionMontage())
 	{
