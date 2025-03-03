@@ -98,6 +98,16 @@ enum class ETurnPseudoAnimState : uint8
 };
 
 /**
+ * Simulated proxy anim state
+ */
+UENUM(BlueprintType)
+enum class ETurnSimulatedAnimState : uint8
+{
+	TurnInPlace,
+	Recovery,
+};
+
+/**
  * How to select the turn animation based on the turn angle
  */
 UENUM(BlueprintType)

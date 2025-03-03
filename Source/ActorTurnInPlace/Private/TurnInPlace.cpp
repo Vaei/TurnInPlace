@@ -105,6 +105,7 @@ void UTurnInPlace::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	SharedParams.Condition = COND_SimulatedOnly;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedTurnOffset, SharedParams);
+	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedAnimState, SharedParams);
 }
 
 ENetRole UTurnInPlace::GetLocalRole() const
@@ -754,10 +755,31 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	return AnimGraphData;
 }
 
-void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
-	const FTurnInPlaceAnimGraphOutput& TurnOutput)
+void UTurnInPlace::PostUpdateAnimGraphData(FTurnInPlaceAnimGraphData& AnimGraphData)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
+	if (bReplicateSimulatedAnimState)
+	{
+		// Send anim state to simulated proxies
+		if (GetOwner()->HasAuthority() && !WantsPseudoAnimState())  // Pseudo cannot update here, it must be done after ThreadSafeUpdatePseudoAnimState()
+		{
+			ETurnSimulatedAnimState NewState = AnimGraphData.bWantsToTurn ? ETurnSimulatedAnimState::TurnInPlace : ETurnSimulatedAnimState::Recovery;
+			if (SimulatedAnimState != NewState)
+			{
+				SimulatedAnimState = NewState;
+				MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedAnimState, this);
+			}
+		}
+		// Receive anim state from server
+		else if (GetOwner()->GetLocalRole() == ROLE_SimulatedProxy)
+		{
+			AnimGraphData.bWantsToTurn = SimulatedAnimState == ETurnSimulatedAnimState::TurnInPlace;
+		}
+	}
+}
+
+void UTurnInPlace::ThreadSafeUpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData, const FTurnInPlaceAnimGraphOutput& TurnOutput)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdatePseudoAnimState);
 	
 	// Dedicated server might want to use pseudo anim state instead of playing actual animations
 	if (!WantsPseudoAnimState())
@@ -814,7 +836,7 @@ void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPla
 			// UpdateTurnInPlaceRecovery()
 			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
 			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
-							PseudoNodeData.AnimStateTime, DeltaTime, 1.f);  // Recovery plays at 1x speed
+				PseudoNodeData.AnimStateTime, DeltaTime, 1.f);  // Recovery plays at 1x speed
 			if (PseudoNodeData.AnimStateTime >= PseudoAnim->GetPlayLength())
 			{
 				PseudoAnimState = ETurnPseudoAnimState::Idle;
@@ -826,6 +848,23 @@ void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPla
 		}
 		break;
 	}
+
+	// Send anim state to simulated proxies -- Only pseudo updates here, animation mode is updated in PostUpdateAnimGraphData()
+	ETurnSimulatedAnimState NewState = PseudoAnimState == ETurnPseudoAnimState::TurnInPlace ? ETurnSimulatedAnimState::TurnInPlace : ETurnSimulatedAnimState::Recovery;
+	if (SimulatedAnimState != NewState)
+	{
+		SimulatedAnimState = NewState;
+		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedAnimState, this);
+	}
+}
+
+void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+	FTurnInPlaceAnimGraphOutput& TurnOutput)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
+
+	// Dedicated server might want to use pseudo anim state instead of playing actual animations
+	ThreadSafeUpdatePseudoAnimState(DeltaTime, TurnData, TurnOutput);
 }
 
 int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight)
