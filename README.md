@@ -81,13 +81,16 @@ There is too much in the anim graph that goes into building the system Lyra uses
 _Significant update to `ABP_Manny_Turn`, consider using perforce to diff -- these changes are only required if you need the new pseudo animation system_
 
 * Introduced pseudo animation system for dedicated servers that don't refresh bones (and don't run any turn anim graph states at all)
-* Updated `ABP_Manny_Turn` to support updated system that has been condensed with pseudo anim states in mind
-* Condensed multiple anim graph variables into `FTurnInPlaceGraphNodeData AnimNodeData`
-* Condensed anim graph functionality into single C++ nodes where appropriate
-	* `GetTurnInPlaceAnimation()`
-	* `ThreadSafeUpdateTurnInPlaceNode()`
+	* Updated `ABP_Manny_Turn` to support updated system that has been condensed with pseudo anim states in mind
+	* Condensed multiple anim graph variables into `FTurnInPlaceGraphNodeData AnimNodeData`
+	* Condensed anim graph functionality into single C++ nodes where appropriate
+		* `GetTurnInPlaceAnimation()`
+		* `ThreadSafeUpdateTurnInPlaceNode()`
 * Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
 	* This is likely inconsequential but added for sake of completion and consistency
+* Add cheat CVar `p.Turn.Override` for debugging/isolation testing
+* Add `TRACE_CPUPROFILER_EVENT_SCOPE` for profiling via insights
+* Make virtual `DebugRotation` and `DebugServerPhysicsBodies`
 
 ### 1.2.0
 * Backport demo content for 5.3
