@@ -40,6 +40,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	ETurnAnimUpdateMode DedicatedServerAnimUpdateMode = ETurnAnimUpdateMode::Animation;
 
+	/**
+	 * Allow simulated proxies to parse their animation curves to deduct turn offset
+	 * This prevents them being stuck in a turn while awaiting their next replication update if the server ticks at a
+	 * low frequency which is common in released products but unlikely to be seen in your new project with default settings
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
+	bool bSimulateAnimationCurves = true;
+	
 	/** Turn in place settings */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
 	FTurnInPlaceSettings Settings;
@@ -246,8 +254,16 @@ public:
 
 	static bool HasTurnOffsetChanged(float CurrentValue, float LastValue);
 
+	/**
+	 * Must be called from your ACharacter::Tick() override
+	 * Allows simulated proxies to simulate the deduction based on the anim curve
+	 * This is helpful for servers that have low tick frequency so that the sim proxy doesn't get stuck in a turn state
+	 * while awaiting the next replication update
+	 */
+	virtual void SimulateTurnInPlace();
+
 	/** Process the core logic of the TurnInPlace system */
-	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation);
+	virtual void TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation, bool bClientSimulation = false);
 
 	/** Must be called from your ACharacter::FaceRotation() and UCharacterMovementComponent::PhysicsRotation() overrides */
 	virtual void PostTurnInPlace(float LastTurnOffset);
