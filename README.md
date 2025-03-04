@@ -78,7 +78,7 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 
 ### 1.3.0
-_Significant update to `ABP_Manny_Turn`, consider using perforce to diff -- these changes are only required if you need the new pseudo animation system_
+_Significant update to `ABP_Manny_Turn`, consider using perforce to diff_
 
 * Introduced pseudo animation system for dedicated servers that don't refresh bones (and don't run any turn anim graph states at all)
 	* Updated `ABP_Manny_Turn` to support updated system that has been condensed with pseudo anim states in mind
@@ -86,9 +86,6 @@ _Significant update to `ABP_Manny_Turn`, consider using perforce to diff -- thes
 	* Condensed anim graph functionality into single C++ nodes where appropriate
 		* `GetTurnInPlaceAnimation()`
 		* `ThreadSafeUpdateTurnInPlaceNode()`
-* Introduced simulated animation state for servers to send their animation state to simulated proxies to keep them in sync
-	* Enable `bReplicateSimulatedAnimState`
-	* This is good for low net update rates and low tick rates, or any time the simulated proxies find themselves unable to complete a turn for some time
 * Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
 	* This is likely inconsequential but added for sake of completion and consistency
 * Add cheat CVar `p.Turn.Override` for debugging/isolation testing

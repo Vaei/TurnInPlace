@@ -108,7 +108,8 @@ UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation(const FTurnInPlaceAn
 	return TurnAnimations.IsValidIndex(NodeData.StepSize) ? TurnAnimations[NodeData.StepSize] : nullptr;
 }
 
-void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPlaceAnimGraphData& AnimGraphData,
+void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime,
+	FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output,
 	bool& bCanUpdateTurnInPlace)
 {
 	AnimGraphData = FTurnInPlaceAnimGraphData();
@@ -119,18 +120,33 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPl
 		return;
 	}
 	
-	AnimGraphData = TurnInPlace->UpdateAnimGraphData();
-	TurnInPlace->PostUpdateAnimGraphData(AnimGraphData);
+	AnimGraphData = TurnInPlace->UpdateAnimGraphData(DeltaTime);
 	bCanUpdateTurnInPlace = true;
+
+	// The pseudo anim state needs to update here
+	if (AnimGraphData.bWantsPseudoAnimState)
+	{
+		ThreadSafeUpdateTurnInPlace_Internal(AnimGraphData, bCanUpdateTurnInPlace, bIsStrafing, Output);
+	}
+
+	TurnInPlace->PostUpdateAnimGraphData(DeltaTime, AnimGraphData, Output);
 }
 
-FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime,
-	const FTurnInPlaceAnimGraphData& AnimGraphData, bool bCanUpdateTurnInPlace, bool bIsStrafing)
+void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGraphData& AnimGraphData,
+	bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output)
 {
-	FTurnInPlaceAnimGraphOutput Output;
+	if (!AnimGraphData.bWantsPseudoAnimState)
+	{
+		ThreadSafeUpdateTurnInPlace_Internal(AnimGraphData, bCanUpdateTurnInPlace, bIsStrafing, Output);
+	}
+}
+
+void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlaceAnimGraphData& AnimGraphData,
+	bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output)
+{
 	if (!bCanUpdateTurnInPlace)
 	{
-		return Output;
+		return;
 	}
 
 	// Turn anim graph properties
@@ -145,12 +161,7 @@ FTurnInPlaceAnimGraphOutput UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(UTu
 	Output.bTransitionStopToIdleForTurn = AnimGraphData.bIsTurning || AnimGraphData.bWantsToTurn;
 
 	// Play turn anim
-	Output.bPlayTurnAnim = Output.bWantsToTurn && !TurnInPlace->WantsPseudoAnimState();
-
-	// Update pseudo anim state
-	TurnInPlace->ThreadSafeUpdateTurnInPlace(DeltaTime, AnimGraphData, Output);
-
-	return Output;
+	Output.bPlayTurnAnim = Output.bWantsToTurn && !AnimGraphData.bWantsPseudoAnimState;
 }
 
 FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveValues(const UAnimInstance* AnimInstance, const FTurnInPlaceAnimGraphData& AnimGraphData)

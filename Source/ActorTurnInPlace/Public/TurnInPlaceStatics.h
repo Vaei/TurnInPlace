@@ -80,24 +80,33 @@ public:
 	/**
 	 * Update anim graph data for turn in place by retrieving data from the game thread. Call from NativeUpdateAnimation or BlueprintUpdateAnimation.
 	 * @param TurnInPlace The turn in place component
+	 * @param DeltaTime The delta time for this frame
 	 * @param AnimGraphData The anim graph data for this frame
-	 * @param bCanUpdateTurnInPlace True if the turn in place is valid, false if we should not process turn in place this frame 
+	 * @param bIsStrafing True if the character is strafing
+	 * @param Output The output data for the anim graph, ONLY VALID IF DEDICATED SERVER and updating from pseudo anim state
+	 * @param bCanUpdateTurnInPlace True if the turn in place is valid, false if we should not process turn in place this frame
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(NotBlueprintThreadSafe, DisplayName="Update Turn In Place"))
-	static void UpdateTurnInPlace(UTurnInPlace* TurnInPlace, FTurnInPlaceAnimGraphData& AnimGraphData,
-		bool& bCanUpdateTurnInPlace);
+	static void UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, 
+		FTurnInPlaceAnimGraphOutput& Output, bool& bCanUpdateTurnInPlace);
 
 	/**
 	 * Process anim graph data that was retrieved from the game thread. Call from NativeThreadSafeUpdateAnimation or BlueprintThreadSafeUpdateAnimation.
 	 * @param AnimGraphData The anim graph data for this frame from UpdateTurnInPlace
 	 * @param bCanUpdateTurnInPlace True if the turn in place is valid, false if we should not process turn in place this frame
 	 * @param bIsStrafing True if the character is strafing - bTransitionStartToCycleFromTurn should only be used when strafing
+	 * @param Output The processed turn in place data with necessary output values for the anim graph
 	 * @return The processed turn in place data with necessary output values for the anim graph
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DisplayName="Thread Safe Update Turn In Place"))
-	static FTurnInPlaceAnimGraphOutput ThreadSafeUpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, const FTurnInPlaceAnimGraphData& AnimGraphData,
-		bool bCanUpdateTurnInPlace, bool bIsStrafing);
+	static void ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGraphData& AnimGraphData,
+		bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output);
 
+protected:
+	static void ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlaceAnimGraphData& AnimGraphData,
+		bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output);
+	
+public:
 	/**
 	 * Extract curve values that can later be requested by the Game Thread via TurnInPlaceAnimInterface. Call from NativeThreadSafeUpdateAnimation or BlueprintThreadSafeUpdateAnimation.
 	 * @param AnimInstance The anim instance to request curve values from
