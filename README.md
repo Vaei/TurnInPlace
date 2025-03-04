@@ -86,6 +86,8 @@ _Significant update to `ABP_Manny_Turn`, consider using perforce to diff_
 	* Condensed anim graph functionality into single C++ nodes where appropriate
 		* `GetTurnInPlaceAnimation()`
 		* `ThreadSafeUpdateTurnInPlaceNode()`
+* Introduced the ability for simulated proxies to parse their anim curves to deduct turn offset
+	* This prevents them being stuck in a turn while awaiting their next replication update if the server ticks at a low frequency (common in released products but not new/default UE projects)
 * Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
 	* This is likely inconsequential but added for sake of completion and consistency
 * Add cheat CVar `p.Turn.Override` for debugging/isolation testing

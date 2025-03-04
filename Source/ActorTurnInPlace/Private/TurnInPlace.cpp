@@ -455,7 +455,15 @@ bool UTurnInPlace::HasTurnOffsetChanged(float CurrentValue, float LastValue)
 	return !CurrentTurnQuat.Equals(LastTurnQuat, TURN_ROTATOR_TOLERANCE);
 }
 
-void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation)
+void UTurnInPlace::SimulateTurnInPlace()
+{
+	if (bSimulateAnimationCurves && HasValidData() && GetOwnerRole() == ROLE_SimulatedProxy && IsCharacterStationary())
+	{
+		TurnInPlace(FRotator::ZeroRotator, FRotator::ZeroRotator, true);
+	}
+}
+
+void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& DesiredRotation, bool bClientSimulation)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::TurnInPlace);
 
@@ -474,16 +482,19 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 		return;
 	}
 
-	// Reset it here, because we are not appending, and this accounts for velocity being applied (no turn in place)
-	TurnOffset = 0.f;
-	InterpOutAlpha = 0.f;
-
-	// If turn in place is paused, we can't accumulate any turn offset
-	if (State != ETurnInPlaceEnabledState::Paused)
+	if (!bClientSimulation)
 	{
-		TurnOffset = (DesiredRotation - CurrentRotation).GetNormalized().Yaw;
-	}
+		// Reset it here, because we are not appending, and this accounts for velocity being applied (no turn in place)
+		TurnOffset = 0.f;
+		InterpOutAlpha = 0.f;
 
+		// If turn in place is paused, we can't accumulate any turn offset
+		if (State != ETurnInPlaceEnabledState::Paused)
+		{
+			TurnOffset = (DesiredRotation - CurrentRotation).GetNormalized().Yaw;
+		}
+	}
+	
 	// Apply any turning from the animation sequence
 	float LastCurveValue = CurveValue;
 	FTurnInPlaceCurveValues CurveValues = GetCurveValues();
@@ -541,12 +552,15 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 		TurnOffset = FMath::ClampAngle(TurnOffset, -MaxTurnAngle, MaxTurnAngle);
 	}
 
-	// Normalize the turn offset to -180 to 180
-	const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnOffset + CurrentRotation.Yaw));
-	LastAppliedTurnYaw = ActorTurnRotation;
+	if (!bClientSimulation)
+	{
+		// Normalize the turn offset to -180 to 180
+		const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnOffset + CurrentRotation.Yaw));
+		LastAppliedTurnYaw = ActorTurnRotation;
 
-	// Apply the turn offset to the character
-	GetOwner()->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
+		// Apply the turn offset to the character
+		GetOwner()->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
+	}
 	
 #if !UE_BUILD_SHIPPING
 	// Log the turn in place values for debugging if set to verbose
