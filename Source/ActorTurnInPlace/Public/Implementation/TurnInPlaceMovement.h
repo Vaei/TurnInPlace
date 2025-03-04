@@ -92,7 +92,7 @@ public:
 
 	float LastAppliedTurnYaw;
 
-	static UTurnInPlace* GetTurnInPlace(ACharacter* C);
+	static UTurnInPlace* GetTurnInPlace(const ACharacter* C);
 
 	/** Clear saved move properties, so it can be re-used. */
 	virtual void Clear() override;
