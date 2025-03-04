@@ -173,7 +173,7 @@ class FNetworkPredictionData_Client* UTurnInPlaceMovement::GetPredictionData_Cli
 	return ClientPredictionData;
 }
 
-UTurnInPlace* FSavedMove_Character_TurnInPlace::GetTurnInPlace(ACharacter* C)
+UTurnInPlace* FSavedMove_Character_TurnInPlace::GetTurnInPlace(const ACharacter* C)
 {
 	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
 	return MoveComp ? MoveComp->GetTurnInPlace() : nullptr;
