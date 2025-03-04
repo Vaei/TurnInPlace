@@ -105,7 +105,6 @@ void UTurnInPlace::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& O
 	SharedParams.Condition = COND_SimulatedOnly;
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedTurnOffset, SharedParams);
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, SimulatedAnimState, SharedParams);
 }
 
 ENetRole UTurnInPlace::GetLocalRole() const
@@ -715,7 +714,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	return false;
 }
 
-FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
+FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData(float DeltaTime) const
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdateAnimGraphData);
 	
@@ -737,6 +736,7 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	AnimGraphData.bIsTurning = IsTurningInPlace();
 	AnimGraphData.StepSize = DetermineStepSize(Params, TurnOffset, AnimGraphData.bTurnRight);
 	AnimGraphData.TurnModeTag = GetTurnModeTag();
+	AnimGraphData.bWantsPseudoAnimState = WantsPseudoAnimState();
 
 	// Determine if we have valid turn angles for the current turn mode tag and cache the result
 	if (const FTurnInPlaceAngles* TurnAngles = Params.GetTurnAngles(GetTurnModeTag()))
@@ -755,32 +755,17 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData() const
 	return AnimGraphData;
 }
 
-void UTurnInPlace::PostUpdateAnimGraphData(FTurnInPlaceAnimGraphData& AnimGraphData)
+void UTurnInPlace::PostUpdateAnimGraphData(float DeltaTime, FTurnInPlaceAnimGraphData& AnimGraphData, FTurnInPlaceAnimGraphOutput& TurnOutput)
 {
-	if (bReplicateSimulatedAnimState)
-	{
-		// Send anim state to simulated proxies
-		if (GetOwner()->HasAuthority() && !WantsPseudoAnimState())  // Pseudo cannot update here, it must be done after ThreadSafeUpdatePseudoAnimState()
-		{
-			ETurnSimulatedAnimState NewState = AnimGraphData.bWantsToTurn ? ETurnSimulatedAnimState::TurnInPlace : ETurnSimulatedAnimState::Recovery;
-			if (SimulatedAnimState != NewState)
-			{
-				SimulatedAnimState = NewState;
-				MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedAnimState, this);
-			}
-		}
-		// Receive anim state from server
-		else if (GetOwner()->GetLocalRole() == ROLE_SimulatedProxy)
-		{
-			AnimGraphData.bWantsToTurn = SimulatedAnimState == ETurnSimulatedAnimState::TurnInPlace;
-		}
-	}
+	// Note: We only have valid TurnOutput here if we are updating the pseudo anim state (i.e. dedicated server only!)
+	UpdatePseudoAnimState(DeltaTime, AnimGraphData, TurnOutput);
 }
 
-void UTurnInPlace::ThreadSafeUpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData, const FTurnInPlaceAnimGraphOutput& TurnOutput)
+void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+	FTurnInPlaceAnimGraphOutput& TurnOutput)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdatePseudoAnimState);
-	
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
+
 	// Dedicated server might want to use pseudo anim state instead of playing actual animations
 	if (!WantsPseudoAnimState())
 	{
@@ -848,23 +833,6 @@ void UTurnInPlace::ThreadSafeUpdatePseudoAnimState(float DeltaTime, const FTurnI
 		}
 		break;
 	}
-
-	// Send anim state to simulated proxies -- Only pseudo updates here, animation mode is updated in PostUpdateAnimGraphData()
-	ETurnSimulatedAnimState NewState = PseudoAnimState == ETurnPseudoAnimState::TurnInPlace ? ETurnSimulatedAnimState::TurnInPlace : ETurnSimulatedAnimState::Recovery;
-	if (SimulatedAnimState != NewState)
-	{
-		SimulatedAnimState = NewState;
-		MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedAnimState, this);
-	}
-}
-
-void UTurnInPlace::ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
-	FTurnInPlaceAnimGraphOutput& TurnOutput)
-{
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
-
-	// Dedicated server might want to use pseudo anim state instead of playing actual animations
-	ThreadSafeUpdatePseudoAnimState(DeltaTime, TurnData, TurnOutput);
 }
 
 int32 UTurnInPlace::DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight)

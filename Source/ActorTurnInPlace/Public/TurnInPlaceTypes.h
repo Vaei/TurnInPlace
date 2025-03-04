@@ -98,16 +98,6 @@ enum class ETurnPseudoAnimState : uint8
 };
 
 /**
- * Simulated proxy anim state
- */
-UENUM(BlueprintType)
-enum class ETurnSimulatedAnimState : uint8
-{
-	TurnInPlace,
-	Recovery,
-};
-
-/**
  * How to select the turn animation based on the turn angle
  */
 UENUM(BlueprintType)
@@ -411,6 +401,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 		, StepSize(0)
 		, TurnModeTag(FGameplayTag::EmptyTag)
 		, bHasValidTurnAngles(false)
+		, bWantsPseudoAnimState(false)
 	{}
 
 	/** The current Anim Set containing the turn anims to play and turn params */
@@ -455,6 +446,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 	/** Cached Settings from the TurnInPlace component */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	FTurnInPlaceSettings Settings;
+
+	/** Cached result for the validity of the contained TurnAngles property */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bWantsPseudoAnimState;
 };
 
 /**

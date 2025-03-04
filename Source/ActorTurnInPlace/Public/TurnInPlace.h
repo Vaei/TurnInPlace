@@ -40,15 +40,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	ETurnAnimUpdateMode DedicatedServerAnimUpdateMode = ETurnAnimUpdateMode::Animation;
 
-	/**
-	 * If true, will replicate the pseudo anim state to simulated proxies
-	 * Only relevant if DedicatedServerAnimUpdateMode is set to Pseudo
-	 * If the server's tick rate differs from the client's tick rate, this can help keep the client in sync
-	 *	This alleviates the issue where the simulated proxy keeps trying to turn instead of exiting their animation
-	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
-	bool bReplicateSimulatedAnimState = false;
-	
 	/** Turn in place settings */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Turn)
 	FTurnInPlaceSettings Settings;
@@ -85,10 +76,6 @@ protected:
 	 */
 	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTurnOffset)
 	FTurnInPlaceSimulatedReplication SimulatedTurnOffset;
-
-	/** Optionally send the anim state to the simulated proxies */
-	UPROPERTY(Replicated)
-	ETurnSimulatedAnimState SimulatedAnimState = ETurnSimulatedAnimState::Recovery;
 
 public:
 	UTurnInPlace(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -286,22 +273,19 @@ public:
 	 * Used by the anim graph to request the data pertinent to the current frame and trigger the turn in place animations
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn)
-	FTurnInPlaceAnimGraphData UpdateAnimGraphData() const;
+	FTurnInPlaceAnimGraphData UpdateAnimGraphData(float DeltaTime) const;
 
 	/** Called immediately after UpdateAnimGraphData() for post-processing */
 	UFUNCTION(BlueprintCallable, Category=Turn)
-	void PostUpdateAnimGraphData(FTurnInPlaceAnimGraphData& NewAnimGraphData);
+	void PostUpdateAnimGraphData(float DeltaTime, FTurnInPlaceAnimGraphData& AnimGraphData, FTurnInPlaceAnimGraphOutput& TurnOutput);
 	
-	void ThreadSafeUpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
-		const FTurnInPlaceAnimGraphOutput& TurnOutput);
-
 	/**
 	 * Called from Anim Graph BlueprintThreadSafeUpdateAnimation or NativeThreadSafeUpdateAnimation
 	 * Thread safe only, do not update anything that has a basis on the game thread
 	 */
-	virtual void ThreadSafeUpdateTurnInPlace(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+	virtual void UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
 		FTurnInPlaceAnimGraphOutput& TurnOutput);
-	
+
 protected:
 	/** Used to determine which step size to use based on the current TurnOffset and the last FTurnInPlaceParams */
 	static int32 DetermineStepSize(const FTurnInPlaceParams& Params, float Angle, bool& bTurnRight);
