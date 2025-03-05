@@ -827,7 +827,7 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
 			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
 				PseudoNodeData.AnimStateTime, DeltaTime, 1.f);  // Recovery plays at 1x speed
-			if (PseudoNodeData.AnimStateTime >= PseudoAnim->GetPlayLength())
+			if (!PseudoAnim || (PseudoAnim && PseudoNodeData.AnimStateTime >= PseudoAnim->GetPlayLength()))
 			{
 				PseudoAnimState = ETurnPseudoAnimState::Idle;
 
