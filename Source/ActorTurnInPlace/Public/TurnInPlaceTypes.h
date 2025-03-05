@@ -139,6 +139,46 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSimulatedReplication
 };
 
 /**
+ * Transient data for Turn In Place
+ * Conveniently packed to be saved and restored via
+ * UCharacterMovementComponent::SetInitialPosition() and UCharacterMovementComponent::CombineWith()
+ */
+USTRUCT(BlueprintType)
+struct ACTORTURNINPLACE_API FTurnInPlaceData
+{
+	GENERATED_BODY()
+
+	FTurnInPlaceData()
+		: TurnOffset(0.f)
+		, CurveValue(0.f)
+		, InterpOutAlpha(0.f)
+		, bLastUpdateValidCurveValue(false)
+	{}
+	
+	/**
+	 * The current turn offset in degrees
+	 * @note Epic refer to this as RootYawOffset but that's not accurate for an actor-based turning system, especially because this value is the inverse of actual root yaw offset
+ 	 * @warning You generally do not want to factor this into your anim graph when considering velocity, acceleration, or aim offsets because we have a true rotation and it is unnecessary
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	float TurnOffset;
+
+	/**
+	 * The current value of the curve represented by TurnYawCurveName
+	 */
+	UPROPERTY(BlueprintReadOnly, Category=Turn)
+	float CurveValue;
+
+	/** When the character starts moving, interpolate away the turn in place */
+	UPROPERTY(BlueprintReadOnly, Category=Turn)
+	float InterpOutAlpha;
+	
+	/** Whether the last update had a valid curve value -- used to check if becoming relevant again this frame */
+	UPROPERTY(Transient)
+	bool bLastUpdateValidCurveValue;
+};
+
+/**
  * Settings for Turn In Place
  */
 USTRUCT(BlueprintType)
@@ -535,5 +575,4 @@ struct ACTORTURNINPLACE_API FTurnInPlaceGraphNodeData
 	/** Current recovery is to the right */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bIsRecoveryTurningRight;
-
 };

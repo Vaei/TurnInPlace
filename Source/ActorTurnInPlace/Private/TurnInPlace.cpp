@@ -82,10 +82,6 @@ UTurnInPlace::UTurnInPlace(const FObjectInitializer& ObjectInitializer)
 	, bIsValidAnimInstance(false)
 	, bWarnIfAnimInterfaceNotImplemented(true)
 	, bHasWarned(false)
-	, TurnOffset(0)
-	, CurveValue(0)
-	, InterpOutAlpha(0)
-	, bLastUpdateValidCurveValue(false)
 {
 	// We don't need to tick
 	PrimaryComponentTick.bCanEverTick = false;
@@ -124,9 +120,9 @@ void UTurnInPlace::CompressSimulatedTurnOffset(float LastTurnOffset)
 	// Compress result and replicate turn offset to simulated proxy
 	if (HasAuthority() && GetNetMode() != NM_Standalone)
 	{
-		if (HasTurnOffsetChanged(TurnOffset, LastTurnOffset))
+		if (HasTurnOffsetChanged(GetTurnOffset(), LastTurnOffset))
 		{
-			SimulatedTurnOffset.Compress(TurnOffset);
+			SimulatedTurnOffset.Compress(GetTurnOffset());
 			MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, SimulatedTurnOffset, this);
 		}
 	}
@@ -140,7 +136,7 @@ void UTurnInPlace::OnRep_SimulatedTurnOffset()
 	// This keeps simulated proxies in sync with the server and allows them to turn in place
 	if (GetLocalRole() == ROLE_SimulatedProxy && HasValidData())
 	{
-		TurnOffset = SimulatedTurnOffset.Decompress();
+		TurnData.TurnOffset = SimulatedTurnOffset.Decompress();
 	}
 }
 
@@ -477,60 +473,59 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Locked;
 	if (!bEnabled)
 	{
-		TurnOffset = 0.f;
-		CurveValue = 0.f;
+		TurnData = {};
 		return;
 	}
 
 	if (!bClientSimulation)
 	{
 		// Reset it here, because we are not appending, and this accounts for velocity being applied (no turn in place)
-		TurnOffset = 0.f;
-		InterpOutAlpha = 0.f;
+		TurnData.TurnOffset = 0.f;
+		TurnData.InterpOutAlpha = 0.f;
 
 		// If turn in place is paused, we can't accumulate any turn offset
 		if (State != ETurnInPlaceEnabledState::Paused)
 		{
-			TurnOffset = (DesiredRotation - CurrentRotation).GetNormalized().Yaw;
+			TurnData.TurnOffset = (DesiredRotation - CurrentRotation).GetNormalized().Yaw;
 		}
 	}
 	
 	// Apply any turning from the animation sequence
-	float LastCurveValue = CurveValue;
+	float LastCurveValue = TurnData.CurveValue;
 	FTurnInPlaceCurveValues CurveValues = GetCurveValues();
 	const float TurnYawWeight = CurveValues.TurnYawWeight;
 
 	if (FMath::IsNearlyZero(TurnYawWeight, KINDA_SMALL_NUMBER))
 	{
 		// No curve weight, don't apply any animation yaw
-		CurveValue = 0.f;
-		bLastUpdateValidCurveValue = false;
+		TurnData.CurveValue = 0.f;
+		TurnData.bLastUpdateValidCurveValue = false;
 	}
 	else
 	{
 		// Apply the remaining yaw from the current animation (curve) that is playing, scaled by the weight curve
 		const float RemainingTurnYaw = CurveValues.RemainingTurnYaw;
-		CurveValue = RemainingTurnYaw * TurnYawWeight;
+		TurnData.CurveValue = RemainingTurnYaw * TurnYawWeight;
 
 		// Avoid applying curve delta when curve first becomes relevant again
-		if (!bLastUpdateValidCurveValue)
+		if (!TurnData.bLastUpdateValidCurveValue)
 		{
-			CurveValue = 0.f;
+			TurnData.CurveValue = 0.f;
 			LastCurveValue = 0.f;
 		}
-		bLastUpdateValidCurveValue = true;
+		TurnData.bLastUpdateValidCurveValue = true;
 
 		// Don't apply if a direction change occurred (this avoids snapping when changing directions)
-		if (FMath::Sign(CurveValue) == FMath::Sign(LastCurveValue))
+		if (FMath::Sign(TurnData.CurveValue) == FMath::Sign(LastCurveValue))
 		{
 			// Exceeding 180 degrees results in a snap, so maintain current rotation until the turn animation
 			// removes the excessive angle
-			const float NewTurnOffset = TurnOffset + (CurveValue - LastCurveValue);
+			const float NewTurnOffset = TurnData.TurnOffset + (TurnData.CurveValue - LastCurveValue);
 			if (FMath::Abs(NewTurnOffset) <= 180.f)
 			{
-				if (bLastUpdateValidCurveValue)
+				if (TurnData.bLastUpdateValidCurveValue)
 				{
-					TurnOffset = NewTurnOffset;
+					TurnData.TurnOffset = NewTurnOffset;
 				}
 			}
 		}
@@ -547,16 +542,15 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 
 	// Clamp the turn offset to the max angle if provided
 	const float MaxTurnAngle = TurnAngles ? TurnAngles->MaxTurnAngle : 0.f;
-	if (MaxTurnAngle > 0.f && FMath::Abs(TurnOffset) > MaxTurnAngle)
+	if (MaxTurnAngle > 0.f && FMath::Abs(TurnData.TurnOffset) > MaxTurnAngle)
 	{
-		TurnOffset = FMath::ClampAngle(TurnOffset, -MaxTurnAngle, MaxTurnAngle);
+		TurnData.TurnOffset = FMath::ClampAngle(TurnData.TurnOffset, -MaxTurnAngle, MaxTurnAngle);
 	}
 
 	if (!bClientSimulation)
 	{
 		// Normalize the turn offset to -180 to 180
-		const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnOffset + CurrentRotation.Yaw));
-		LastAppliedTurnYaw = ActorTurnRotation;
+		const float ActorTurnRotation = FRotator::NormalizeAxis(DesiredRotation.Yaw - (TurnData.TurnOffset + CurrentRotation.Yaw));
 
 		// Apply the turn offset to the character
 		GetOwner()->SetActorRotation(CurrentRotation + FRotator(0.f,  ActorTurnRotation, 0.f));
@@ -565,7 +559,7 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 #if !UE_BUILD_SHIPPING
 	// Log the turn in place values for debugging if set to verbose
 	const FString NetRole = GetNetMode() == NM_Standalone ? TEXT("") : GetOwner()->GetLocalRole() == ROLE_Authority ? TEXT("[ Server ]") : TEXT("[ Client ]");
-	UE_LOG(LogTurnInPlace, Verbose, TEXT("%s cv %.2f  lcv %.2f  offset %.2f"), *NetRole, CurveValue, LastCurveValue, TurnOffset);
+	UE_LOG(LogTurnInPlace, Verbose, TEXT("%s cv %.2f  lcv %.2f  offset %.2f"), *NetRole, TurnData.CurveValue, LastCurveValue, TurnData.TurnOffset);
 #endif
 }
 
@@ -588,8 +582,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	// Invalid requirements, exit
 	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCharacterMovement())
 	{
-		TurnOffset = 0.f;
-		CurveValue = 0.f;
+		TurnData = {};
 		return true;
 	}
 	
@@ -603,8 +596,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
 	if (!bEnabled)
 	{
-		TurnOffset = 0.f;
-		CurveValue = 0.f;
+		TurnData = {};
 		return false;
 	}
 
@@ -618,7 +610,7 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		return true;
 	}
 	
-	TurnOffset = 0.f;
+	TurnData.TurnOffset = 0.f;
 
 	// This is ACharacter::FaceRotation(), but with interpolation for when we start moving so it doesn't snap
 	if (!MaybeCharacter->GetCharacterMovement()->bOrientRotationToMovement)
@@ -637,8 +629,8 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 			else
 			{
 				// Interpolate away the rotation because we are moving
-				InterpOutAlpha = FMath::FInterpConstantTo(InterpOutAlpha, 1.f, DeltaTime, Params.MovingInterpOutRate);
-				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), InterpOutAlpha).GetNormalized().Rotator().Yaw;
+				TurnData.InterpOutAlpha = FMath::FInterpConstantTo(TurnData.InterpOutAlpha, 1.f, DeltaTime, Params.MovingInterpOutRate);
+				NewControlRotation.Yaw = FQuat::Slerp(CurrentRotation.Quaternion(), NewControlRotation.Quaternion(), TurnData.InterpOutAlpha).GetNormalized().Rotator().Yaw;
 			}
 
 			if (!MaybeCharacter->bUseControllerRotationRoll)
@@ -673,8 +665,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	// Invalid requirements, exit
 	if (!HasValidData() || !MaybeCharacter || !MaybeCharacter->GetCharacterMovement())
 	{
-		TurnOffset = 0.f;
-		CurveValue = 0.f;
+		TurnData = {};
 		return true;
 	}
 
@@ -688,8 +679,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
 	if (!bEnabled)
 	{
-		TurnOffset = 0.f;
-		CurveValue = 0.f;
+		TurnData = {};
 		return false;
 	}
 
@@ -724,7 +714,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	}
 
 	// We've started moving, CMC can take over by calling Super::PhysicsRotation()
-	TurnOffset = 0.f;  // Cull this when we start moving, it will be recalculated when we stop moving
+	TurnData = {};  // Cull turn offset when we start moving, it will be recalculated when we stop moving
 	return false;
 }
 
@@ -746,6 +736,7 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData(float DeltaTime) con
 	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 
 	// Retrieve parameters for the current frame required by the animation graph
+	const float& TurnOffset = GetTurnOffset();
 	AnimGraphData.TurnOffset = TurnOffset;
 	AnimGraphData.bIsTurning = IsTurningInPlace();
 	AnimGraphData.StepSize = DetermineStepSize(Params, TurnOffset, AnimGraphData.bTurnRight);
@@ -775,7 +766,7 @@ void UTurnInPlace::PostUpdateAnimGraphData(float DeltaTime, FTurnInPlaceAnimGrap
 	UpdatePseudoAnimState(DeltaTime, AnimGraphData, TurnOutput);
 }
 
-void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnAnimData,
 	FTurnInPlaceAnimGraphOutput& TurnOutput)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
@@ -792,7 +783,7 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 	}
 
 	// Update pseudo state on dedicated server
-	const FTurnInPlaceAnimSet& AnimSet = TurnData.AnimSet;
+	const FTurnInPlaceAnimSet& AnimSet = TurnAnimData.AnimSet;
 
 	switch (PseudoAnimState)
 	{
@@ -802,14 +793,14 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 			PseudoAnimState = ETurnPseudoAnimState::TurnInPlace;
 
 			// SetupTurnAnim()
-			PseudoNodeData.StepSize = TurnData.StepSize;
-			PseudoNodeData.bIsTurningRight = TurnData.bTurnRight;
+			PseudoNodeData.StepSize = TurnAnimData.StepSize;
+			PseudoNodeData.bIsTurningRight = TurnAnimData.bTurnRight;
 
 			// SetupTurnInPlace()
 			PseudoNodeData.AnimStateTime = 0.f;
 			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
 			PseudoNodeData.bHasReachedMaxTurnAngle = false;
-			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnData, AnimSet);
+			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnAnimData, AnimSet);
 		}
 		break;
 	case ETurnPseudoAnimState::TurnInPlace:
@@ -827,7 +818,7 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
 			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
 				PseudoNodeData.AnimStateTime, DeltaTime, PseudoNodeData.TurnPlayRate);
-			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnData, AnimSet);
+			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnAnimData, AnimSet);
 		}
 		break;
 	case ETurnPseudoAnimState::Recovery:
@@ -925,7 +916,7 @@ void UTurnInPlace::DebugRotation() const
 		FRandomStream ColorStream(DebugKey);
 		FColor DebugColor = FColor(ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255));
 		const FString CharacterRole = GetOwner()->HasAuthority() ? TEXT("Server") : GetOwner()->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
-		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, DebugColor, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, TurnOffset));
+		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, DebugColor, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, GetTurnOffset()));
 	}
 
 	// We only want each character on screen to draw this once, so exclude servers from drawing this for the autonomous proxy
@@ -958,7 +949,7 @@ void UTurnInPlace::DebugRotation() const
 		// Turn Rotation Vector
 		if (TurnInPlaceCvars::bDebugTurnOffsetArrow)
 		{
-			const FVector TurnVector = (GetOwner()->GetActorRotation() + FRotator(0.f, TurnOffset, 0.f)).GetNormalized().Vector();
+			const FVector TurnVector = (GetOwner()->GetActorRotation() + FRotator(0.f, GetTurnOffset(), 0.f)).GetNormalized().Vector();
 			DrawDebugDirectionalArrow(GetOwner()->GetWorld(), Location, Location + (TurnVector * 200.f),
 				40.f, FColor(38, 199, 0), false, -1, 0, 2.f);
 		}

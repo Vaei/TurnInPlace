@@ -51,7 +51,7 @@ bool ATurnInPlaceCharacter::TurnInPlaceRotation(FRotator NewControlRotation, flo
 		}
 
 		// Cache the last turn offset for replication comparison
-		const float LastTurnOffset = TurnInPlace->TurnOffset;
+		const float LastTurnOffset = TurnInPlace->GetTurnOffset();
 
 		// This is where the core logic of the TurnInPlace system is processed
 		const bool bHandled = TurnInPlace->FaceRotation(NewControlRotation, DeltaTime);

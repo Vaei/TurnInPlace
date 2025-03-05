@@ -78,8 +78,10 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 
 ### 1.3.0
-_Significant update to `ABP_Manny_Turn`, consider using perforce to diff_
+**BREAKING CHANGES**
+_Consider using perforce to diff `ABP_Manny_Turn` in particular when updating your project_
 
+* Fixed move combining by resetting transient data at the start of the move instead of reapplying the last turn yaw to `StartRotation`
 * Introduced pseudo animation system for dedicated servers that don't refresh bones (and don't run any turn anim graph states at all)
 	* Updated `ABP_Manny_Turn` to support updated system that has been condensed with pseudo anim states in mind
 	* Condensed multiple anim graph variables into `FTurnInPlaceGraphNodeData AnimNodeData`
@@ -88,11 +90,12 @@ _Significant update to `ABP_Manny_Turn`, consider using perforce to diff_
 		* `ThreadSafeUpdateTurnInPlaceNode()`
 * Introduced the ability for simulated proxies to parse their anim curves to deduct turn offset
 	* This prevents them being stuck in a turn while awaiting their next replication update if the server ticks at a low frequency (common in released products but not new/default UE projects)
+	* Enabled by default -- results remain stable regardless of tick frequency
 * Add missing `SetupTurnInPlaceRecovery()` node function from `ABP_Manny_Turn`
-	* This is likely inconsequential but added for sake of completion and consistency
+	* This is potentially inconsequential but added for sake of completion and consistency
 * Add cheat CVar `p.Turn.Override` for debugging/isolation testing
 * Add `TRACE_CPUPROFILER_EVENT_SCOPE` for profiling via insights
-* Make virtual `DebugRotation` and `DebugServerPhysicsBodies`
+* Make virtual `DebugRotation` and `DebugServerPhysicsBodies` for projects to remove/add debugging functionality
 
 ### 1.2.0
 * Backport demo content for 5.3
