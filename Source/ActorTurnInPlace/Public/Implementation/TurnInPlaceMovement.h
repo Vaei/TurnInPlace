@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TurnInPlaceTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TurnInPlaceMovement.generated.h"
 
@@ -84,13 +85,12 @@ class ACTORTURNINPLACE_API FSavedMove_Character_TurnInPlace : public FSavedMove_
 
 public:
 	FSavedMove_Character_TurnInPlace()
-		: LastAppliedTurnYaw(0)
 	{}
 
 	virtual ~FSavedMove_Character_TurnInPlace() override
 	{}
 
-	float LastAppliedTurnYaw;
+	FTurnInPlaceData StartTurnData;
 
 	static UTurnInPlace* GetTurnInPlace(const ACharacter* C);
 

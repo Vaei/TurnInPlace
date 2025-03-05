@@ -196,42 +196,33 @@ public:
 
 public:
 	/**
-	 * The current turn offset in degrees
+	 * Get the current turn offset in degrees
+	 * @return The current turn offset in degrees
 	 * @note Epic refer to this as RootYawOffset but that's not accurate for an actor-based turning system, especially because this value is the inverse of actual root yaw offset
+	 * @warning You generally do not want to factor this into your anim graph when considering velocity, acceleration, or aim offsets because we have a true rotation and it is unnecessary
 	 */
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
-	float TurnOffset;
+	UFUNCTION(BlueprintPure, Category=Turn)
+	const float& GetTurnOffset() const { return TurnData.TurnOffset; }
 	
+public:
+	/** Transient data that is updated each frame */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
-	float LastAppliedTurnYaw;
+	FTurnInPlaceData TurnData;
 
-	/**
-	 * The current value of the curve represented by TurnYawCurveName
-	 */
-	UPROPERTY(BlueprintReadOnly, Category=Turn)
-	float CurveValue;
-
-	/** When the character starts moving, interpolate away the turn in place */
-	UPROPERTY(BlueprintReadOnly, Category=Turn)
-	float InterpOutAlpha;
-	
 	/**
 	 * Current pseudo anim state on dedicated server
 	 * Must never be modified on game thread
 	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
 	ETurnPseudoAnimState PseudoAnimState;
-	
+
+	/** Data typically used by the anim graph, borrowed for pseudo anim nodes */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
 	FTurnInPlaceGraphNodeData PseudoNodeData;
-	
+
+	/** Current pseudo anim sequence to fake on dedicated server, queried for curve values */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
 	UAnimSequence* PseudoAnim;
-
-private:
-	/** Whether the last update had a valid curve value -- used to check if becoming relevant again this frame */
-	UPROPERTY(Transient)
-	bool bLastUpdateValidCurveValue;
 
 public:
 	/** Get the current turn in place state that determines if turn in place is enabled, paused, or locked */
@@ -299,7 +290,7 @@ public:
 	 * Called from Anim Graph BlueprintThreadSafeUpdateAnimation or NativeThreadSafeUpdateAnimation
 	 * Thread safe only, do not update anything that has a basis on the game thread
 	 */
-	virtual void UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnData,
+	virtual void UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnAnimData,
 		FTurnInPlaceAnimGraphOutput& TurnOutput);
 
 protected:

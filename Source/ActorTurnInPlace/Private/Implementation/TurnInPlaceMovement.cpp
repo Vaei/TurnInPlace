@@ -144,7 +144,7 @@ void UTurnInPlaceMovement::PhysicsRotation(float DeltaTime)
 	// Allow the turn in place system to handle rotation if desired
 	if (UTurnInPlace* TurnInPlace = GetTurnInPlace())
 	{
-		const float LastTurnOffset = TurnInPlace->TurnOffset;
+		const float LastTurnOffset = TurnInPlace->GetTurnOffset();
 		
 		// We will abort handling if not stationary or not rotating to the last input vector
 		if (!TurnInPlace->PhysicsRotation(this, DeltaTime, bRotateToLastInputVector, LastInputVector))
@@ -183,7 +183,7 @@ void FSavedMove_Character_TurnInPlace::Clear()
 {
 	Super::Clear();
 
-	LastAppliedTurnYaw = 0.f;
+	StartTurnData = {};
 }
 
 void FSavedMove_Character_TurnInPlace::SetInitialPosition(ACharacter* C)
@@ -192,7 +192,7 @@ void FSavedMove_Character_TurnInPlace::SetInitialPosition(ACharacter* C)
 
 	if (UTurnInPlace* TurnInPlace = GetTurnInPlace(C))
 	{
-		LastAppliedTurnYaw = TurnInPlace->LastAppliedTurnYaw;
+		StartTurnData = TurnInPlace->TurnData;
 	}
 }
 
@@ -201,22 +201,22 @@ void FSavedMove_Character_TurnInPlace::CombineWith(const FSavedMove_Character* O
 {
 	Super::CombineWith(OldMove, C, PC, OldStartLocation);
 
-	if (UCharacterMovementComponent* MoveComp = C ? C->GetCharacterMovement() : nullptr)
+	if (UTurnInPlace* TurnInPlace = GetTurnInPlace(C))
 	{
-		// Turn in place not supported when we are attached to a moving parent
-		if (!StartAttachParent.Get())
-		{
-			/*
-			 * When combining moves, the rotation is set back to StartRotation which will discard our turn in place rotation
-			 * So we need to save our turn in place at the same position, and then apply it back over the top after the rotation is set
-			 *
-			 * The result of not doing this would be that when combining moves (by default FPS >60), approximately half
-			 * the turn in place angle would be lost only on the local client, i.e. they would rotate half as much as the server
-			 */
-			const FSavedMove_Character_TurnInPlace* SavedOldMove = static_cast<const FSavedMove_Character_TurnInPlace*>(OldMove);
-			const FRotator NewStartRotation = (SavedOldMove->StartRotation + FRotator(0.f, SavedOldMove->LastAppliedTurnYaw, 0.f)).GetNormalized();
-			MoveComp->UpdatedComponent->SetWorldRotation(NewStartRotation, false, nullptr, MoveComp->GetTeleportType());
-		}
+		/*
+		 * When combining moves, the rotation is set back to StartRotation which will discard our turn in place rotation
+		 * After this function we call ACharacter::FaceRotation() passing in the current control rotation
+		 * (not from saved moves), which means FaceRotation() must perform a full accurate/identical re-simulation
+		 * of the turn in place, so we need to reset all transient data to the start position
+		 * 
+		 * If we saved our turn in place at the same position, and then apply it back over the top after the
+		 * rotation is set, in simpler projects it would appear to work, but it would be incorrect
+		 *
+		 * The result of not doing this would be that when combining moves (by default FPS >60), approximately half
+		 * the turn in place angle would be lost only on the local client, i.e. they would rotate half as much as the server
+		 */
+		const FSavedMove_Character_TurnInPlace* SavedOldMove = static_cast<const FSavedMove_Character_TurnInPlace*>(OldMove);
+		TurnInPlace->TurnData = SavedOldMove->StartTurnData;
 	}
 }
 
