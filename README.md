@@ -102,6 +102,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### 1.3.1
 * Add missing include (generally inconsequential)
 
+### 1.3.1
+* Add missing include (generally inconsequential)
+
 ### 1.3.0
 **BREAKING CHANGES**
 _Consider using perforce to diff `ABP_Manny_Turn` in particular when updating your project_
