@@ -13,7 +13,14 @@
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
+## Watch Me
+
+> [!TIP]
 [Showcase Video](https://t.co/tUQ1csqX6k)
+
+## How to Use
+> [!IMPORTANT]
+> [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
 # Technique Comparison
 
