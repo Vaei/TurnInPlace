@@ -12,7 +12,8 @@
 
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
-> <br>[Showcase Video](https://t.co/tUQ1csqX6k)
+
+[Showcase Video](https://t.co/tUQ1csqX6k)
 
 # Technique Comparison
 
