@@ -84,6 +84,11 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### _Future Updates_
 * Custom Gravity
 * Mover 2.0 out of the box support
+	* This depends on Mover 2.0 ever becoming actually _good_
+
+### 1.3.2
+* Change Editor module to EditorNoCommandlet
+	* Project-specific use-cases can interfere with commandlets
 
 ### 1.3.1
 * Add missing include (generally inconsequential)
