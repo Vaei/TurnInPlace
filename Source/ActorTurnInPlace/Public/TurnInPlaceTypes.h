@@ -235,7 +235,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceMontageHandling
 
 	/** Montages added here not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
-	TArray<UAnimMontage*> IgnoreMontages;
+	TArray<TObjectPtr<UAnimMontage>> IgnoreMontages;
 };
 
 /**
@@ -382,11 +382,11 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimSet
 
 	/** Animations to select from when turning left */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
-	TArray<UAnimSequence*> LeftTurns;
+	TArray<TObjectPtr<UAnimSequence>> LeftTurns;
 
 	/** Animations to select from when turning right */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
-	TArray<UAnimSequence*> RightTurns;
+	TArray<TObjectPtr<UAnimSequence>> RightTurns;
 };
 
 /**
