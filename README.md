@@ -95,6 +95,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### 1.3.3
 * Replace native pointers with TObjectPtr
 
+### 1.3.3
+* Replace native pointers with TObjectPtr
+
 ### 1.3.2
 * Change Editor module to EditorNoCommandlet
 	* Project-specific use-cases can interfere with commandlets

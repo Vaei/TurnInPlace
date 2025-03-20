@@ -225,7 +225,7 @@ public:
 
 	/** Current pseudo anim sequence to fake on dedicated server, queried for curve values */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
-	UAnimSequence* PseudoAnim;
+	TObjectPtr<UAnimSequence> PseudoAnim;
 
 public:
 	/** Get the current turn in place state that determines if turn in place is enabled, paused, or locked */
