@@ -88,6 +88,7 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 ### 1.3.4
 * Fixed critical bug where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking**
+* Added ability to set override on per-montage basis (check your anim set params)
 * Const-correctness
 
 ### 1.3.3
