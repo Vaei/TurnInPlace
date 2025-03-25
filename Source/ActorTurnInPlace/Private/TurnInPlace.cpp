@@ -247,19 +247,6 @@ bool UTurnInPlace::IsCharacterStationary() const
 	return GetOwner()->GetVelocity().IsNearlyZero();
 }
 
-UAnimMontage* UTurnInPlace::GetCurrentMontage() const
-{
-	if (bIsValidAnimInstance)
-	{
-		// Get the root motion montage instance and return the montage
-		if (const FAnimMontageInstance* MontageInstance = AnimInstance->GetRootMotionMontageInstance())
-		{
-			return MontageInstance->Montage;
-		}
-	}
-	return nullptr;
-}
-
 UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 {
 	// Check if the character is playing a networked root motion montage
@@ -385,18 +372,7 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 		// We want to lock turn in place if the weight curve is not 0
 		return ETurnInPlaceOverride::ForceLocked;
 	}
-	
-	// Allow specific override per-montage
-	if (const UAnimMontage* Montage = GetCurrentMontage())
-	{
-		// But we don't want to pause turn in place if the montage is ignored by our current params
-		const ETurnInPlaceOverride MontageOverride = GetOverrideForMontage(Montage);
-		if (MontageOverride != ETurnInPlaceOverride::Default)
-		{
-			return MontageOverride;
-		}
-	}
-	
+
 	// We want to pause turn in place when using root motion montages
 	if (const UAnimMontage* Montage = GetCurrentNetworkRootMotionMontage())
 	{

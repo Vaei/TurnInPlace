@@ -128,13 +128,6 @@ public:
 	bool IsCharacterStationary() const;
 
 	/**
-	 * Get the current montage that is playing regardless of affecting root motion or not
-	 * @return The current montage
-	 */
-	UFUNCTION(BlueprintCallable, Category=Turn)
-	UAnimMontage* GetCurrentMontage() const;
-
-	/**
 	 * Get the current root motion montage that is playing
 	 * @return The current root motion montage
 	 */
