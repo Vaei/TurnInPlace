@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.3.0",
+	"VersionName": "1.3.4",
 	"FriendlyName": "ActorTurnInPlace",
 	"Description": "Actor-Based Turn in Place Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.",
 	"Category": "Gameplay",
@@ -22,7 +22,7 @@
 		},
 		{
 			"Name": "ActorTurnInPlaceEditor",
-			"Type": "Editor",
+			"Type": "EditorNoCommandlet",
 			"LoadingPhase": "PreDefault"
 		}
 	],
