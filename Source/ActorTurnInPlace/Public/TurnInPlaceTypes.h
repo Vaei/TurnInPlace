@@ -189,6 +189,8 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSettings
 	FTurnInPlaceSettings()
 		: TurnYawCurveName("RemainingTurnYaw")
 		, TurnWeightCurveName("TurnYawWeight")
+		, PauseTurnInPlaceCurveName("PauseTurnInPlace")
+		, LockTurnInPlaceCurveName("LockTurnInPlace")
 	{}
 
 	/**
@@ -210,6 +212,20 @@ struct ACTORTURNINPLACE_API FTurnInPlaceSettings
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
 	FName TurnWeightCurveName;
+
+	/**
+	 * This curve is used to pause the turn in place system when the character is in a state where turning is not desired
+	 * Add this to your anim asset or montages to override the turn in place system
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
+	FName PauseTurnInPlaceCurveName;
+
+	/**
+	 * This curve is used to lock the turn in place system when the character is in a state where turning is not desired
+	 * Add this to your anim asset or montages to override the turn in place system
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings)
+	FName LockTurnInPlaceCurveName;
 };
 
 /**
@@ -405,11 +421,15 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 	FTurnInPlaceCurveValues()
 		: RemainingTurnYaw(0.f)
 		, TurnYawWeight(0.f)
+		, PauseTurnInPlace(0.f)
+		, LockTurnInPlace(0.f)
 	{}
 
-	FTurnInPlaceCurveValues(float InRemainingTurnYaw, float InTurnYawWeight)
+	FTurnInPlaceCurveValues(float InRemainingTurnYaw, float InTurnYawWeight, float InPauseTurnInPlace, float InLockTurnInPlace)
 		: RemainingTurnYaw(InRemainingTurnYaw)
 		, TurnYawWeight(InTurnYawWeight)
+		, PauseTurnInPlace(InPauseTurnInPlace)
+		, LockTurnInPlace(InLockTurnInPlace)
 	{}
 
 	/**
@@ -426,6 +446,18 @@ struct ACTORTURNINPLACE_API FTurnInPlaceCurveValues
 	 */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	float TurnYawWeight;
+
+	/**
+	 * Pause the turn in place system when the character is in a state where turning is not desired
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	float PauseTurnInPlace;
+
+	/**
+	 * Lock the turn in place system when the character is in a state where turning is not desired
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	float LockTurnInPlace;
 };
 
 /**
