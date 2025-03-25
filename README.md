@@ -90,7 +90,6 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Fixed **significant bug** where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking** please check over your gameplay for correct behaviour.
 * Added anim curves to override turn in place to paused or locked
 	* Add metadata curve `PauseTurnInPlace` or `LockTurnInPlace`
-* Added ability to set override on per-montage basis (check your anim set params)
 * Const-correctness
 
 ### 1.3.3
