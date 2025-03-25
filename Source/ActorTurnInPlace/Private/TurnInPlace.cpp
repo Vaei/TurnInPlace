@@ -8,6 +8,7 @@
 #include "GameFramework/Controller.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "DrawDebugHelpers.h"
@@ -996,7 +997,11 @@ void UTurnInPlace::DebugRotation() const
 #endif
 }
 
+#if UE_ENABLE_DEBUG_DRAWING
+#if !WITH_SIMPLE_ANIMATION
 static bool bHasWarnedSimpleAnimation = false;
+#endif
+#endif
 void UTurnInPlace::DebugServerPhysicsBodies() const
 {
 #if UE_ENABLE_DEBUG_DRAWING
