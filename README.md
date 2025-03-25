@@ -86,8 +86,10 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
 
-### 1.3.4
-* Fixed critical bug where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking**
+### 1.4.0
+* Fixed **critical bug** where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking**
+* Added anim curves to override turn in place to paused or locked
+	* Add metadata curve `PauseTurnInPlace` or `LockTurnInPlace`
 * Added ability to set override on per-montage basis (check your anim set params)
 * Const-correctness
 

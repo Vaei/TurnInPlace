@@ -370,6 +370,21 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 		}
 	}
 #endif
+
+	// Curve values are used to determine if we should pause or lock turn in place
+	const FTurnInPlaceCurveValues& CurveValues = GetCurveValues();
+
+	if (FMath::IsNearlyEqual(CurveValues.PauseTurnInPlace, 1.f, 0.05f))
+	{
+		// We want to pause turn in place if the weight curve is not 0
+		return ETurnInPlaceOverride::ForcePaused;
+	}
+
+	if (FMath::IsNearlyEqual(CurveValues.LockTurnInPlace, 1.f, 0.05f))
+	{
+		// We want to lock turn in place if the weight curve is not 0
+		return ETurnInPlaceOverride::ForceLocked;
+	}
 	
 	// Allow specific override per-montage
 	if (const UAnimMontage* Montage = GetCurrentMontage())
@@ -449,7 +464,9 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 		{
 			const float Yaw = PseudoAnim->EvaluateCurveData(Settings.TurnYawCurveName, PseudoNodeData.AnimStateTime);
 			const float Weight = PseudoAnim->EvaluateCurveData(Settings.TurnWeightCurveName, PseudoNodeData.AnimStateTime);
-			return { Yaw, Weight };
+			const float Pause = PseudoAnim->EvaluateCurveData(Settings.PauseTurnInPlaceCurveName, PseudoNodeData.AnimStateTime);
+			const float Lock = PseudoAnim->EvaluateCurveData(Settings.LockTurnInPlaceCurveName, PseudoNodeData.AnimStateTime);
+			return { Yaw, Weight, Pause, Lock };
 		}
 	}
 
