@@ -128,6 +128,13 @@ public:
 	bool IsCharacterStationary() const;
 
 	/**
+	 * Get the current montage that is playing regardless of affecting root motion or not
+	 * @return The current montage
+	 */
+	UFUNCTION(BlueprintCallable, Category=Turn)
+	UAnimMontage* GetCurrentMontage() const;
+
+	/**
 	 * Get the current root motion montage that is playing
 	 * @return The current root motion montage
 	 */
@@ -151,6 +158,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category=Turn)
 	bool ShouldIgnoreRootMotionMontage(const UAnimMontage* Montage) const;
 
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	ETurnInPlaceOverride GetOverrideForMontage(const UAnimMontage* Montage) const;
+	
 	/**
 	 * This function is primarily used for debugging, if the controller doesn't exist debugging won't work
 	 * @return The controller if one exists

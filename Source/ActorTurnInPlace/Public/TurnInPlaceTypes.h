@@ -225,6 +225,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceMontageHandling
 		, IgnoreMontageSlots({ TEXT("UpperBody"), TEXT("UpperBodyAdditive"), TEXT("UpperBodyDynAdditiveBase"), TEXT("UpperBodyDynAdditive"), TEXT("Attack") })
 	{}
 
+	/** Assign specific overrides to specific montages */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(AllowedValues="ForceEnabled,ForceLocked,ForcePaused"))
+	TMap<TObjectPtr<const UAnimMontage>, ETurnInPlaceOverride> MontageOverrides;
+	
 	/** Montages with additive tracks will not be considered to be Playing @see UAnimInstance::IsAnyMontagePlaying() */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn)
 	bool bIgnoreAdditiveMontages;

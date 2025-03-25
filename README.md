@@ -12,7 +12,15 @@
 
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
-> <br>[Showcase Video](https://t.co/tUQ1csqX6k)
+
+## Watch Me
+
+> [!TIP]
+[Showcase Video](https://t.co/tUQ1csqX6k)
+
+## How to Use
+> [!IMPORTANT]
+> [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 
 # Technique Comparison
 
@@ -76,6 +84,21 @@ There is too much in the anim graph that goes into building the system Lyra uses
 ### _Future Updates_
 * Custom Gravity
 * Mover 2.0 out of the box support
+	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
+
+### 1.3.4
+* Fixed critical bug where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking**
+* Const-correctness
+
+### 1.3.3
+* Replace native pointers with TObjectPtr
+
+### 1.3.2
+* Change Editor module to EditorNoCommandlet
+	* Project-specific use-cases can interfere with commandlets
+
+### 1.3.1
+* Add missing include (generally inconsequential)
 
 ### 1.3.0
 **BREAKING CHANGES**

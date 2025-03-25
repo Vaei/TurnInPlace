@@ -247,6 +247,19 @@ bool UTurnInPlace::IsCharacterStationary() const
 	return GetOwner()->GetVelocity().IsNearlyZero();
 }
 
+UAnimMontage* UTurnInPlace::GetCurrentMontage() const
+{
+	if (bIsValidAnimInstance)
+	{
+		// Get the root motion montage instance and return the montage
+		if (const FAnimMontageInstance* MontageInstance = AnimInstance->GetRootMotionMontageInstance())
+		{
+			return MontageInstance->Montage;
+		}
+	}
+	return nullptr;
+}
+
 UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 {
 	// Check if the character is playing a networked root motion montage
@@ -259,6 +272,28 @@ UAnimMontage* UTurnInPlace::GetCurrentNetworkRootMotionMontage() const
 		}
 	}
 	return nullptr;
+}
+
+ETurnInPlaceOverride UTurnInPlace::GetOverrideForMontage_Implementation(const UAnimMontage* Montage) const
+{
+	// Allow overriding per-montage
+	if (HasValidData() && Montage)
+	{
+		FTurnInPlaceParams Params = GetParams();
+		if (const ETurnInPlaceOverride* Override = Params.MontageHandling.MontageOverrides.Find(Montage))
+		{
+#if WITH_EDITOR
+			if (*Override == ETurnInPlaceOverride::Default)
+			{
+				FMessageLog("PIE").Warning(FText::Format(
+					LOCTEXT("MontageOverrideDefault", "Montage {0} has an override of Default. AnimInstance {1}. Owner {2}. This will be ignored."),
+					FText::FromString(Montage->GetName()), FText::FromString(AnimInstance->GetName()), FText::FromString(GetOwner()->GetName())));
+			}
+#endif
+			return *Override;
+		}
+	}
+	return ETurnInPlaceOverride::Default;
 }
 
 AController* UTurnInPlace::GetController_Implementation() const
@@ -336,16 +371,27 @@ ETurnInPlaceOverride UTurnInPlace::OverrideTurnInPlace_Implementation() const
 	}
 #endif
 	
-	// We want to pause turn in place when using root motion montages
-	if (UAnimMontage* Montage = GetCurrentNetworkRootMotionMontage())
+	// Allow specific override per-montage
+	if (const UAnimMontage* Montage = GetCurrentMontage())
 	{
 		// But we don't want to pause turn in place if the montage is ignored by our current params
-		if (ShouldIgnoreRootMotionMontage(Montage))
+		const ETurnInPlaceOverride MontageOverride = GetOverrideForMontage(Montage);
+		if (MontageOverride != ETurnInPlaceOverride::Default)
+		{
+			return MontageOverride;
+		}
+	}
+	
+	// We want to pause turn in place when using root motion montages
+	if (const UAnimMontage* Montage = GetCurrentNetworkRootMotionMontage())
+	{
+		// But we don't want to pause turn in place if the montage is ignored by our current params
+		if (!ShouldIgnoreRootMotionMontage(Montage))
 		{
 			return ETurnInPlaceOverride::ForcePaused;
 		}
 	}
-	
+
 	return ETurnInPlaceOverride::Default;
 }
 
@@ -365,8 +411,8 @@ ETurnInPlaceEnabledState UTurnInPlace::GetEnabledState(const FTurnInPlaceParams&
 
 	// Determine the enabled state of turn in place
 	// This allows us to lock or pause turn in place, or force it to be enabled based on runtime conditions
-	ETurnInPlaceEnabledState State = Params.State;
-	ETurnInPlaceOverride OverrideState = OverrideTurnInPlace();
+	const ETurnInPlaceEnabledState State = Params.State;
+	const ETurnInPlaceOverride OverrideState = OverrideTurnInPlace();
 	switch (OverrideState)
 	{
 	case ETurnInPlaceOverride::Default: return State;
@@ -464,10 +510,10 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::TurnInPlace);
 
 	// Determine the correct params to use
-	FTurnInPlaceParams Params = GetParams();
+	const FTurnInPlaceParams Params = GetParams();
 	
 	// Determine the state of turn in place
-	ETurnInPlaceEnabledState State = GetEnabledState(Params);
+	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 	
 	// Turn in place is locked, we can't do anything
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Locked;
@@ -492,7 +538,7 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	
 	// Apply any turning from the animation sequence
 	float LastCurveValue = TurnData.CurveValue;
-	FTurnInPlaceCurveValues CurveValues = GetCurveValues();
+	const FTurnInPlaceCurveValues CurveValues = GetCurveValues();
 	const float TurnYawWeight = CurveValues.TurnYawWeight;
 
 	if (FMath::IsNearlyZero(TurnYawWeight, KINDA_SMALL_NUMBER))
@@ -587,10 +633,10 @@ bool UTurnInPlace::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	}
 	
 	// Determine the correct params to use
-	FTurnInPlaceParams Params = GetParams();
+	const FTurnInPlaceParams Params = GetParams();
 	
 	// Determine the state of turn in place
-	ETurnInPlaceEnabledState State = GetEnabledState(Params);
+	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 	
 	// Turn in place is locked, we can't do anything
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
@@ -670,10 +716,10 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	}
 
 	// Determine the correct params to use
-	FTurnInPlaceParams Params = GetParams();
+	const FTurnInPlaceParams Params = GetParams();
 	
 	// Determine the state of turn in place
-	ETurnInPlaceEnabledState State = GetEnabledState(Params);
+	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 	
 	// Turn in place is locked, we can't do anything
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Paused;
@@ -684,8 +730,8 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 	}
 
 	// Cache the updated component and current rotation
-	USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
-	FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
+	const USceneComponent* UpdatedComponent = CharacterMovement->UpdatedComponent;
+	const FRotator CurrentRotation = UpdatedComponent->GetComponentRotation(); // Normalized
 	CurrentRotation.DiagnosticCheckNaN(TEXT("UTurnInPlace::PhysicsRotation(): CurrentRotation"));
 
 	// If the character is stationary, we can turn in place
@@ -704,7 +750,7 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 		else if (!MaybeCharacter->Controller && CharacterMovement->bRunPhysicsWithNoController && CharacterMovement->bUseControllerDesiredRotation)
 		{
 			// We have no controller, but we can try to find one
-			if (AController* ControllerOwner = Cast<AController>(MaybeCharacter->GetOwner()))
+			if (const AController* ControllerOwner = Cast<AController>(MaybeCharacter->GetOwner()))
 			{
 				// Rotate towards the controller's desired rotation
 				TurnInPlace(CurrentRotation, ControllerOwner->GetDesiredRotation());
@@ -730,7 +776,7 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData(float DeltaTime) con
 
 	// Get the current turn in place anim set & parameters from the animation blueprint
 	AnimGraphData.AnimSet = ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
-	FTurnInPlaceParams Params = AnimGraphData.AnimSet.Params;
+	const FTurnInPlaceParams Params = AnimGraphData.AnimSet.Params;
 
 	// Determine the enabled state of turn in place
 	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
@@ -913,8 +959,8 @@ void UTurnInPlace::DebugRotation() const
 	{
 		// Don't overwrite other character's screen messages
 		const uint64 DebugKey = GetOwner()->GetUniqueID() + 1569;
-		FRandomStream ColorStream(DebugKey);
-		FColor DebugColor = FColor(ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255));
+		const FRandomStream ColorStream(DebugKey);
+		const FColor DebugColor = FColor(ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255), ColorStream.RandRange(0, 255));
 		const FString CharacterRole = GetOwner()->HasAuthority() ? TEXT("Server") : GetOwner()->GetLocalRole() == ROLE_AutonomousProxy ? TEXT("Client") : TEXT("Simulated");
 		GEngine->AddOnScreenDebugMessage(DebugKey, 0.5f, DebugColor, FString::Printf(TEXT("[ %s ] TurnOffset: %.2f"), *CharacterRole, GetTurnOffset()));
 	}

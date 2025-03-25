@@ -175,7 +175,7 @@ class FNetworkPredictionData_Client* UTurnInPlaceMovement::GetPredictionData_Cli
 
 UTurnInPlace* FSavedMove_Character_TurnInPlace::GetTurnInPlace(const ACharacter* C)
 {
-	UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
+	const UTurnInPlaceMovement* MoveComp = C ? Cast<UTurnInPlaceMovement>(C->GetCharacterMovement()) : nullptr;
 	return MoveComp ? MoveComp->GetTurnInPlace() : nullptr;
 }
 
@@ -190,7 +190,7 @@ void FSavedMove_Character_TurnInPlace::SetInitialPosition(ACharacter* C)
 {
 	Super::SetInitialPosition(C);
 
-	if (UTurnInPlace* TurnInPlace = GetTurnInPlace(C))
+	if (const UTurnInPlace* TurnInPlace = GetTurnInPlace(C))
 	{
 		StartTurnData = TurnInPlace->TurnData;
 	}
