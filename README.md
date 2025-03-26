@@ -86,6 +86,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
 
+### 1.4.1
+* Fixed bug where turn in place curve modifier wasn't reapplying if a curve exists
+
 ### 1.4.0
 * Fixed **significant bug** where ShouldIgnoreRootMotionMontage() condition was incorrectly inverted - **This is potentially breaking** please check over your gameplay for correct behaviour.
 * Added anim curves to override turn in place to paused or locked

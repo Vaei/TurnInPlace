@@ -133,6 +133,17 @@ void UTurnInPlaceModifier::OnApply_Implementation(UAnimSequence* Animation)
 		Key.Value = Value;
 	}
 
+	// Remove curve if it exists
+	if (UAnimationBlueprintLibrary::DoesCurveExist(Animation, TurnYawCurveName, ERawCurveTrackTypes::RCT_Float))
+	{
+		UAnimationBlueprintLibrary::RemoveCurve(Animation, TurnYawCurveName);
+	}
+
+	if (UAnimationBlueprintLibrary::DoesCurveExist(Animation, TurnWeightCurveName, ERawCurveTrackTypes::RCT_Float))
+	{
+		UAnimationBlueprintLibrary::RemoveCurve(Animation, TurnWeightCurveName);
+	}
+
 	IAnimationDataController& Controller = Animation->GetController();
 	// Remaining Turn Yaw
 	{
