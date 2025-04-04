@@ -231,6 +231,9 @@ public:
 	/** Get the current turn in place state that determines if turn in place is enabled, paused, or locked */
 	ETurnInPlaceEnabledState GetEnabledState(const FTurnInPlaceParams& Params) const;
 
+	/** Retrieve the turn in place anim set */
+	FTurnInPlaceAnimSet GetTurnInPlaceAnimSet() const;
+	
 	/** Get the current turn in place parameters */
 	FTurnInPlaceParams GetParams() const;
 

@@ -415,6 +415,11 @@ ETurnInPlaceEnabledState UTurnInPlace::GetEnabledState(const FTurnInPlaceParams&
 	}
 }
 
+FTurnInPlaceAnimSet UTurnInPlace::GetTurnInPlaceAnimSet() const
+{
+	return ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
+}
+
 FTurnInPlaceParams UTurnInPlace::GetParams() const
 {
 	if (!HasValidData())
@@ -423,7 +428,7 @@ FTurnInPlaceParams UTurnInPlace::GetParams() const
 	}
 
 	// Get the current turn in place parameters from the animation blueprint
-	FTurnInPlaceAnimSet AnimSet = ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
+	FTurnInPlaceAnimSet AnimSet = GetTurnInPlaceAnimSet();
 	return AnimSet.Params;
 }
 
@@ -769,7 +774,7 @@ FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData(float DeltaTime) con
 	}
 
 	// Get the current turn in place anim set & parameters from the animation blueprint
-	AnimGraphData.AnimSet = ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
+	AnimGraphData.AnimSet = GetTurnInPlaceAnimSet();
 	const FTurnInPlaceParams Params = AnimGraphData.AnimSet.Params;
 
 	// Determine the enabled state of turn in place
