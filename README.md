@@ -86,6 +86,10 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
 
+### 1.4.3
+* Improve profiling
+* Omit missed debug drawing code
+
 ### 1.4.2
 * Moved call to `ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet()` to own function `UTurnInPlace::GetTurnInPlaceAnimSet()`
 	* This is so forked builds can make it virtual then override for advanced use-cases (eliminating interface calls)
