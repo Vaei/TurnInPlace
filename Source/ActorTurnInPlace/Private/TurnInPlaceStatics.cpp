@@ -16,6 +16,8 @@
 
 void UTurnInPlaceStatics::SetCharacterMovementType(ACharacter* Character, ECharacterMovementType MovementType)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::SetCharacterMovementType);
+	
 	if (IsValid(Character) && Character->GetCharacterMovement())
 	{
 		switch (MovementType)
@@ -42,6 +44,8 @@ void UTurnInPlaceStatics::SetCharacterMovementType(ACharacter* Character, EChara
 float UTurnInPlaceStatics::GetTurnInPlacePlayRate_ThreadSafe(const FTurnInPlaceAnimGraphData& AnimGraphData,
 	bool bForceTurnRateMaxAngle, bool& bHasReachedMaxAngle)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::GetTurnInPlacePlayRate_ThreadSafe);
+	
 	// Check if we've reached the max angle, or if we're forcing the max angle
 	bHasReachedMaxAngle = bForceTurnRateMaxAngle;
 	if (!bForceTurnRateMaxAngle)
@@ -69,6 +73,8 @@ float UTurnInPlaceStatics::GetTurnInPlacePlayRate_ThreadSafe(const FTurnInPlaceA
 float UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(const UAnimSequence* TurnAnimation, float CurrentAnimTime,
 	float DeltaTime, float TurnPlayRate)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe);
+	
 	if (!TurnAnimation)
 	{
 		return CurrentAnimTime;
@@ -103,6 +109,8 @@ void UTurnInPlaceStatics::DebugTurnInPlace(UObject* WorldContextObject, bool bDe
 UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation(const FTurnInPlaceAnimSet& AnimSet,
 	const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::GetTurnInPlaceAnimation);
+	
 	const bool bTurnRight = bRecovery ? NodeData.bIsRecoveryTurningRight : NodeData.bIsTurningRight;
 	const TArray<UAnimSequence*>& TurnAnimations = bTurnRight ? AnimSet.RightTurns : AnimSet.LeftTurns;
 	return TurnAnimations.IsValidIndex(NodeData.StepSize) ? TurnAnimations[NodeData.StepSize] : nullptr;
@@ -112,6 +120,8 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float Del
 	FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output,
 	bool& bCanUpdateTurnInPlace)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace);
+	
 	AnimGraphData = FTurnInPlaceAnimGraphData();
 	bCanUpdateTurnInPlace = false;
 	
@@ -144,6 +154,8 @@ void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGrap
 void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlaceAnimGraphData& AnimGraphData,
 	bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal);
+	
 	if (!bCanUpdateTurnInPlace)
 	{
 		return;
@@ -166,6 +178,8 @@ void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlac
 
 FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveValues(const UAnimInstance* AnimInstance, const FTurnInPlaceAnimGraphData& AnimGraphData)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveValues);
+	
 	FTurnInPlaceCurveValues CurveValues;
 
 	// Turn anim graph curve values
@@ -180,6 +194,8 @@ FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveVal
 void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(FTurnInPlaceGraphNodeData& NodeData,
 	const FTurnInPlaceAnimGraphData& AnimGraphData, const FTurnInPlaceAnimSet& AnimSet)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode);
+	
 	// Retain play rate at max angle for this current turn, if we ever reached it
 	// This prevents micro jitters with mouse turning when it constantly re-enters max angle
 	bool bHasReachedMaxAngle;
