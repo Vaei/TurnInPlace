@@ -431,6 +431,8 @@ ETurnInPlaceEnabledState UTurnInPlace::GetEnabledState(const FTurnInPlaceParams&
 
 FTurnInPlaceAnimSet UTurnInPlace::GetTurnInPlaceAnimSet() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::GetTurnInPlaceAnimSet);
+	
 	return ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceAnimSet(AnimInstance);
 }
 
