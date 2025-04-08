@@ -450,8 +450,6 @@ FTurnInPlaceParams UTurnInPlace::GetParams() const
 
 FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::GetCurveValues);
-	
 	if (!HasValidData())
 	{
 		return {};
@@ -462,6 +460,8 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 	{
 		if (PseudoAnim)
 		{
+			TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::GetCurveValues::PseudoAnim);
+			
 			const float Yaw = PseudoAnim->EvaluateCurveData(Settings.TurnYawCurveName, PseudoNodeData.AnimStateTime);
 			const float Weight = PseudoAnim->EvaluateCurveData(Settings.TurnWeightCurveName, PseudoNodeData.AnimStateTime);
 			const float Pause = PseudoAnim->EvaluateCurveData(Settings.PauseTurnInPlaceCurveName, PseudoNodeData.AnimStateTime);
@@ -469,6 +469,8 @@ FTurnInPlaceCurveValues UTurnInPlace::GetCurveValues() const
 			return { Yaw, Weight, Pause, Lock };
 		}
 	}
+
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::GetCurveValues);
 
 	// Get the current turn in place curve values from the animation blueprint
 	return ITurnInPlaceAnimInterface::Execute_GetTurnInPlaceCurveValues(AnimInstance);
@@ -481,6 +483,8 @@ bool UTurnInPlace::WantsPseudoAnimState() const
 
 bool UTurnInPlace::HasValidData() const
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::HasValidData);
+	
 	// We need a valid AnimInstance and Character to proceed, and the anim instance must implement the TurnInPlaceAnimInterface
 	return bIsValidAnimInstance && IsValid(GetOwner()) && !GetOwner()->IsPendingKillPending();
 }
@@ -789,13 +793,13 @@ bool UTurnInPlace::PhysicsRotation(UCharacterMovementComponent* CharacterMovemen
 
 FTurnInPlaceAnimGraphData UTurnInPlace::UpdateAnimGraphData(float DeltaTime) const
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdateAnimGraphData);
-	
 	FTurnInPlaceAnimGraphData AnimGraphData;
 	if (!HasValidData())
 	{
 		return AnimGraphData;
 	}
+
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdateAnimGraphData);
 
 	// Get the current turn in place anim set & parameters from the animation blueprint
 	AnimGraphData.AnimSet = GetTurnInPlaceAnimSet();
