@@ -325,6 +325,8 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 
 	const FTurnInPlaceAngles* GetTurnAngles(const FGameplayTag& TurnModeTag) const
 	{
+		TRACE_CPUPROFILER_EVENT_SCOPE(FTurnInPlaceParams::GetTurnAngles);
+		
 		// Return this turn angle if available
 		if (const FTurnInPlaceAngles* Angles = TurnAngles.Find(TurnModeTag))
 		{
