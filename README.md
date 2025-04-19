@@ -86,6 +86,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
 
+### 1.4.4
+* Fixed significant bug where jumping was incorrectly changing last input vector
+
 ### 1.4.3
 * Improve profiling
 * Omit missed debug drawing code
