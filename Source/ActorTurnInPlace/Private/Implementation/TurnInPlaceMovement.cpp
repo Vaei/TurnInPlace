@@ -46,16 +46,17 @@ void UTurnInPlaceMovement::UpdateLastInputVector()
 		{
 			// Set input vector - additional logic required to prevent gamepad thumbstick from bouncing back past the center
 			// line resulting in the character flipping - known mechanical fault with xbox one elite controller
+			const FVector GroundVelocity = IsMovingOnGround() ? Velocity : FVector(Velocity.X, Velocity.Y, 0.f);
 			const bool bRootMotionNotRecentlyApplied = GetWorld()->TimeSince(LastRootMotionTime) >= 0.25f;  // Grace period for root motion to stop affecting velocity significantly
 			const bool bFromAcceleration = !FMath::IsNearlyZero(ComputeAnalogInputModifier(), 0.5f);
-			const bool bFromVelocity = !Velocity.IsNearlyZero(GetMaxSpeed() * 0.05f) && bRootMotionNotRecentlyApplied;
+			const bool bFromVelocity = !GroundVelocity.IsNearlyZero(GetMaxSpeed() * 0.05f) && bRootMotionNotRecentlyApplied;
 			if (bFromAcceleration)
 			{
 				LastInputVector = Acceleration.GetSafeNormal();
 			}
 			else if (bFromVelocity)
 			{
-				LastInputVector = Velocity.GetSafeNormal();
+				LastInputVector = GroundVelocity.GetSafeNormal();
 			}
 			else if (CharacterOwner->IsBotControlled())
 			{
