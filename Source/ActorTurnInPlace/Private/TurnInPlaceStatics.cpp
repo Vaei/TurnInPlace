@@ -120,7 +120,7 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float Del
 	FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output,
 	bool& bCanUpdateTurnInPlace)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace_Entry);
 	
 	AnimGraphData = FTurnInPlaceAnimGraphData();
 	bCanUpdateTurnInPlace = false;
@@ -129,6 +129,8 @@ void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float Del
 	{
 		return;
 	}
+
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace);
 	
 	AnimGraphData = TurnInPlace->UpdateAnimGraphData(DeltaTime);
 	bCanUpdateTurnInPlace = true;
@@ -154,12 +156,14 @@ void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGrap
 void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlaceAnimGraphData& AnimGraphData,
 	bool bCanUpdateTurnInPlace, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal_Entry);
 	
 	if (!bCanUpdateTurnInPlace)
 	{
 		return;
 	}
+
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal);
 
 	// Turn anim graph properties
 	Output.TurnOffset = AnimGraphData.TurnOffset;

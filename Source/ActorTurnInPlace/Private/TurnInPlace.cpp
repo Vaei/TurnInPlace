@@ -842,7 +842,7 @@ void UTurnInPlace::PostUpdateAnimGraphData(float DeltaTime, FTurnInPlaceAnimGrap
 void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnimGraphData& TurnAnimData,
 	FTurnInPlaceAnimGraphOutput& TurnOutput)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::ThreadSafeUpdateTurnInPlace);
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdatePseudoAnimState_Entry);
 
 	// Dedicated server might want to use pseudo anim state instead of playing actual animations
 	if (!WantsPseudoAnimState())
@@ -854,6 +854,8 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 	{
 		return;
 	}
+
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlace::UpdatePseudoAnimState);
 
 	// Update pseudo state on dedicated server
 	const FTurnInPlaceAnimSet& AnimSet = TurnAnimData.AnimSet;
