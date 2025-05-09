@@ -170,7 +170,8 @@ void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace_Internal(const FTurnInPlac
 
 	// Turn anim graph transitions
 	Output.bWantsToTurn = AnimGraphData.bWantsToTurn;
-	Output.bWantsTurnRecovery = !AnimGraphData.bIsTurning;
+	Output.bWantsTurnRecovery = !AnimGraphData.bIsTurning && !AnimGraphData.bAbortTurn;
+	Output.bAbortTurn = AnimGraphData.bAbortTurn;
 
 	// Locomotion anim graph transitions
 	Output.bTransitionStartToCycleFromTurn = bIsStrafing && FMath::Abs(AnimGraphData.TurnOffset) > AnimGraphData.TurnAngles.MinTurnAngle;
