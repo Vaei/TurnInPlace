@@ -89,7 +89,7 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 ### 1.5.0
 * Added `bAbortTurn` that will abort a turn anim if we become unable to turn and `CanAbortTurnAnimation` returns `true` (by default, it is `true`)
-	* This requires anim graph change -- add the AbortTurn StateAlias to your anim graph
+	* This requires anim graph change -- add the AbortTurn StateAlias to your anim graph, it transitions into `Idle`
 		* -1 Priority
 		* Blend Logic Inertialization
 		* Duration 0.15
