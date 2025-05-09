@@ -87,6 +87,17 @@ There is too much in the anim graph that goes into building the system Lyra uses
 * Mover 2.0 out of the box support
 	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
 
+### 1.5.0
+* Added `bAbortTurn` that will abort a turn anim if we become unable to turn and `CanAbortTurnAnimation` returns `true` (by default, it is `true`)
+	* This requires anim graph change -- add the AbortTurn StateAlias to your anim graph
+		* -1 Priority
+		* Blend Logic Inertialization
+		* Duration 0.15
+		* StateAlias from TurnInPlace and TurnRecovery (optional)
+		* Transition if bAbortTurn from TurnOutput is true
+	* This is mandatory if using Pseudo anim updates for dedicated server, or you will be out of sync
+		* Alternatively, override `UTurnInPlace::CanAbortTurnAnimation()` to `false` to keep original behaviour, or toggle this during runtime
+
 ### 1.4.5
 * Fixed incorrectly named insights trace macro
 * Added further insights trace macros for maximum profiling verbosity

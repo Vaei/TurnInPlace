@@ -190,6 +190,13 @@ public:
 	virtual ETurnInPlaceOverride OverrideTurnInPlace_Implementation() const;
 
 	/**
+	 * If true we can abort a turn animation if we become unable to turn in place during the animation
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category=Turn)
+	bool CanAbortTurnAnimation() const;
+	virtual bool CanAbortTurnAnimation_Implementation() const { return true; }
+	
+	/**
 	 * TurnMode is used to determine which FTurnInPlaceAngles to use
 	 * This allows having different min and max turn angles for different modes
 	 * @return GameplayTag corresponding to the current turn mode

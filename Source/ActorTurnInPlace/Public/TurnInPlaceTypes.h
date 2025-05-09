@@ -475,6 +475,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 		: TurnOffset(0)
 		, bIsTurning(false)
 		, bWantsToTurn(false)
+		, bAbortTurn(false)
 		, bTurnRight(false)
 		, StepSize(0)
 		, TurnModeTag(FGameplayTag::EmptyTag)
@@ -500,6 +501,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphData
 	/** TurnOffset is greater than MinTurnAngle or doing a small turn, used by anim graph to transition to turn */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bWantsToTurn;
+
+	/** True if we want to end the turning animation because we became unable to turn during it */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bAbortTurn;
 
 	/** True if turning to the right */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
@@ -543,6 +548,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 		: TurnOffset(0.f)
 		, bPlayTurnAnim(false)
 		, bWantsToTurn(false)
+		, bAbortTurn(false)
 		, bWantsTurnRecovery(false)
 		, bTransitionStartToCycleFromTurn(false)
 		, bTransitionStopToIdleForTurn(false)
@@ -559,6 +565,10 @@ struct ACTORTURNINPLACE_API FTurnInPlaceAnimGraphOutput
 	/** True if we want to transition to a turn in place anim state */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bWantsToTurn;
+
+	/** True if we want to end the turning animation because we became unable to turn during it */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bAbortTurn;
 
 	/** True if we should transition to a turn in place recovery anim state */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
