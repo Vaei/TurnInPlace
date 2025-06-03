@@ -593,7 +593,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceGraphNodeData
 
 	FTurnInPlaceGraphNodeData()
 		: StepSize(0)
-		, AnimStateTime(0.f)
+		, AnimStateTime(0.0)
 		, TurnPlayRate(1.f)
 		, bHasReachedMaxTurnAngle(false)
 		, bIsTurningRight(true)
@@ -606,7 +606,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceGraphNodeData
 
 	/** Current anim state time */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
-	float AnimStateTime;
+	double AnimStateTime;
 	
 	/** Current turn play rate */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
