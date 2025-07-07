@@ -1,3 +1,6 @@
+> [!CAUTION]
+> Epic broke root motion extraction in 5.6, you cannot use modifiers that extract root motion to curves, and TurnInPlace requires these curves. You might need to export your animation to 5.5, do it there, then copy/paste the curve into your 5.6 animation asset. This disclaimer will be removed if Epic fixes their engine bug.
+
 # Actor Turn In Place <img align="right" width=128, height=128 src="https://github.com/Vaei/TurnInPlace/blob/main/Resources/Icon128.png">
 
 > [!IMPORTANT]
