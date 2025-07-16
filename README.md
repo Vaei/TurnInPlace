@@ -1,13 +1,12 @@
-> [!CAUTION]
-> Epic broke root motion extraction in 5.6, you cannot use modifiers that extract root motion to curves, and TurnInPlace requires these curves. You might need to export your animation to 5.5, do it there, then copy/paste the curve into your 5.6 animation asset. This disclaimer will be removed if Epic fixes their engine bug.
-
-> [!CAUTION]
-> Epic also broke exponential net smoothing mode in 5.6, which causes vertical translation jitter while rotating and stationary.
-
 # Actor Turn In Place <img align="right" width=128, height=128 src="https://github.com/Vaei/TurnInPlace/blob/main/Resources/Icon128.png">
 
 > [!IMPORTANT]
 > Actor-Based Turn in Place (TIP) Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
+
+> [!CAUTION]
+> There are 2 engine bugs introduced with 5.6 that affects this plugin.
+> <br><br>1. Root motion extraction does not work, you cannot use modifiers that extract root motion to curves, which this plugin requires. Epic has not fixed this yet, and may not be aware of it (but I'm taking care of that now)
+> <br>2. Exponential net smoothing mode causes vertical translation jitter while rotating and stationary. This is already fixed on `ue5-main` so will be resolved by 5.7 at the latest (hopefully also in a 5.6 hotfix)
 
 > [!WARNING]
 > Use `git clone` instead of downloading as a zip, or you will not receive content
