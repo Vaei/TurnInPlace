@@ -5,7 +5,7 @@
 
 > [!CAUTION]
 > There are 2 engine bugs introduced with 5.6 that affects this plugin.
-> <br><br>1. Root motion extraction does not work, you cannot use modifiers that extract root motion to curves, which this plugin requires. Epic has not fixed this yet, and may not be aware of it (but I'm taking care of that now)
+> <br><br>1. Root motion extraction does not work, you cannot use modifiers that extract root motion to curves, which this plugin requires. [This has been fixed targeting 5.6.1, you can cherry-pick the commit](https://github.com/EpicGames/UnrealEngine/commit/a5733e0b7229)
 > <br>2. Exponential net smoothing mode causes vertical translation jitter while rotating and stationary. This is already fixed on `ue5-main` so will be resolved by 5.7 at the latest (hopefully also in a 5.6 hotfix)
 
 > [!WARNING]
