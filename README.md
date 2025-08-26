@@ -87,10 +87,8 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
-### _Future Updates_
-* Custom Gravity
-* Mover 2.0 out of the box support
-	* This depends on Mover 2.0 ever becoming actually _good_ and it doesn't look promising
+### 1.5.1
+* Change from `float` to `double` for `FTurnInPlaceGraphNodeData::AnimStateTime` due to 5.6 deprecation
 
 ### 1.5.0
 * Added `bAbortTurn` that will abort a turn anim if we become unable to turn and `CanAbortTurnAnimation` returns `true` (by default, it is `true`)
