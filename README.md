@@ -3,11 +3,6 @@
 > [!IMPORTANT]
 > Actor-Based Turn in Place (TIP) Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
 
-> [!CAUTION]
-> There are 2 engine bugs introduced with 5.6 that affects this plugin.
-> <br><br>1. Root motion extraction does not work, you cannot use modifiers that extract root motion to curves, which this plugin requires. [This has been fixed targeting 5.6.1, you can cherry-pick the commit](https://github.com/EpicGames/UnrealEngine/commit/a5733e0b7229)
-> <br>2. Exponential net smoothing mode causes vertical translation jitter while rotating and stationary. This is already fixed on `ue5-main` so will be resolved by 5.7 at the latest (hopefully also in a 5.6 hotfix)
-
 > [!WARNING]
 > Use `git clone` instead of downloading as a zip, or you will not receive content
 > <br>[Or download the pre-compiled binaries here](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
