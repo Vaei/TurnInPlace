@@ -4,7 +4,7 @@
 > Actor-Based Turn in Place (TIP) Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
 
 > [!WARNING]
-> Use `git clone` instead of downloading as a zip, or you will not receive content
+> Download Content from [Releases](https://github.com/Vaei/TurnInPlace/releases/tag/release) and unzip to the plugin's Content directory
 > <br>[Or download the pre-compiled binaries here](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
 > <br>Install this as a project plugin, not an engine plugin
 
@@ -81,6 +81,9 @@ Furthermore, when adding procedural systems, however simple, they might fight yo
 There is too much in the anim graph that goes into building the system Lyra uses.
 
 # Changelog
+
+### 1.5.2
+* Removed Git LFS - now using Releases for Content
 
 ### 1.5.1
 * Change from `float` to `double` for `FTurnInPlaceGraphNodeData::AnimStateTime` due to 5.6 deprecation
