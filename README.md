@@ -82,6 +82,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.7.1
+* Fix pitch/roll not zeroed after custom gravity
+
 ### 1.7.0
 ***WARNING: UPDATE YOUR CONTENT OR ANIM GRAPHS***
 

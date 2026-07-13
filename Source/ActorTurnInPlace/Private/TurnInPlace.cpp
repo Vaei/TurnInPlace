@@ -621,28 +621,34 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	// Determine the state of turn in place
 	const ETurnInPlaceEnabledState State = GetEnabledState(Params);
 
-	// Measure and apply yaw about the custom-gravity up axis when the character is gravity-aligned. 
-	// Falls back to world up, where the math reduces to the original world-horizontal behaviour.
+	/**
+	 * Measure and apply yaw about the gravity up axis. With default (world-down) gravity the transforms are identity
+	 * and the math reduces to plain world-horizontal yaw.
+	 */
 	FVector GravityUp = FVector::UpVector;
 	FQuat WorldToGravity = FQuat::Identity;
 	FQuat GravityToWorld = FQuat::Identity;
-	bool bCustomGravity = GetCustomGravity(GravityUp, WorldToGravity, GravityToWorld);
+	GetCustomGravity(GravityUp, WorldToGravity, GravityToWorld);
 
-	// Sets the actor vertical in gravity space at BaseWorldRotation's gravity-space heading plus an
-	// optional yaw delta (degrees) about the gravity up axis. Re-verticalling every frame is what keeps the body tilted
-	// to the base while standing, since the engine PhysicsRotation never runs in the FaceRotation path.
+	/**
+	 * Sets the actor vertical in gravity space at BaseWorldRotation's gravity-space heading plus an optional yaw delta
+	 * (degrees) about the gravity up axis. Re-verticalling every frame is what keeps the body tilted to the base while
+	 * standing, since the engine PhysicsRotation never runs in the FaceRotation path. Gravity is the only thing allowed
+	 * to tilt the actor, so this runs unconditionally: under default gravity it zeroes pitch/roll, which is what returns
+	 * the body to upright once a tilted base is left behind.
+	 */
 	auto ApplyGravityVertical = [&](const FRotator& BaseWorldRotation, float AddYawDeg)
 	{
 		const float GravYaw = (GravityToWorld * BaseWorldRotation.Quaternion()).Rotator().Yaw + AddYawDeg;
 		GetOwner()->SetActorRotation((WorldToGravity * FRotator(0.f, GravYaw, 0.f).Quaternion()).Rotator());
 	};
 
-	// Turn in place is locked, we can't turn - but still keep the body aligned to the base under custom gravity
+	// Turn in place is locked, we can't turn - but still keep the body aligned to gravity
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Locked;
 	if (!bEnabled)
 	{
 		TurnData = {};
-		if (bCustomGravity && !bClientSimulation)
+		if (!bClientSimulation)
 		{
 			ApplyGravityVertical(CurrentRotation, 0.f);
 		}
@@ -734,18 +740,9 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 		const float FullOffset = TurnInPlaceLocal::ComputeYawDeltaAroundUp(CurrentRotation, DesiredRotation, GravityUp);
 		const float ActorTurnRotation = FRotator::NormalizeAxis(FullOffset - TurnData.TurnOffset);
 
-		if (bCustomGravity)
-		{
-			// Rotate about the gravity up axis and re-vertical the capsule to gravity, so the body stays base-aligned
-			// (including while standing still, where ActorTurnRotation is ~0).
-			ApplyGravityVertical(CurrentRotation, ActorTurnRotation);
-		}
-		else
-		{
-			// Component-wise yaw add is exactly a world-Z rotation (Rz(d)*Rz(Y) = Rz(d+Y)) and preserves the actor's
-			// pitch/roll, so no quaternion round-trip is needed even when tilted by a moving base.
-			GetOwner()->SetActorRotation(CurrentRotation + FRotator(0.f, ActorTurnRotation, 0.f));
-		}
+		// Rotate about the gravity up axis and re-vertical the capsule to gravity, so the body stays gravity-aligned
+		// (including while standing still, where ActorTurnRotation is ~0).
+		ApplyGravityVertical(CurrentRotation, ActorTurnRotation);
 	}
 	
 #if !UE_BUILD_SHIPPING
