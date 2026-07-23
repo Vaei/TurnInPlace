@@ -320,7 +320,7 @@ struct ACTORTURNINPLACE_API FTurnInPlaceParams
 	float SelectOffset;
 
 	/** Turn angles for different movement orientations */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Turn, meta=(GameplayTagFilter="TurnMode", EditCondition="State!=ETurnInPlaceEnabledState::Paused", EditConditionHides))
 	TMap<FGameplayTag, FTurnInPlaceAngles> TurnAngles;
 
 	const FTurnInPlaceAngles* GetTurnAngles(const FGameplayTag& TurnModeTag) const

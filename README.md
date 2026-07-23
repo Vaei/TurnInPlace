@@ -82,6 +82,9 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.7.2
+* Add `GameplayTagFilter` for `TurnAngles` to fix nested struct filtering
+
 ### 1.7.1
 * Fix pitch/roll not zeroed after custom gravity
 
