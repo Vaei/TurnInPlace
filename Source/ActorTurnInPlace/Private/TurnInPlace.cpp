@@ -96,28 +96,28 @@ namespace TurnInPlaceCvars
 {
 #if UE_ENABLE_DEBUG_DRAWING
 	static bool bDebugTurnOffset = false;
-	FAutoConsoleVariableRef CVarDebugTurnOffset(
+	static FAutoConsoleVariableRef CVarDebugTurnOffset(
 		TEXT("p.Turn.Debug.TurnOffset"),
 		bDebugTurnOffset,
 		TEXT("Draw TurnOffset on screen"),
 		ECVF_Default);
 
 	static bool bDebugTurnOffsetArrow = false;
-	FAutoConsoleVariableRef CVarDebugTurnOffsetArrow(
+	static FAutoConsoleVariableRef CVarDebugTurnOffsetArrow(
 		TEXT("p.Turn.Debug.TurnOffset.Arrow"),
 		bDebugTurnOffsetArrow,
 		TEXT("Draw GREEN debug arrow showing the direction of the turn offset"),
 		ECVF_Default);
 
 	static bool bDebugActorDirectionArrow = false;
-	FAutoConsoleVariableRef CVarDebugActorDirectionArrow(
+	static FAutoConsoleVariableRef CVarDebugActorDirectionArrow(
 		TEXT("p.Turn.Debug.ActorDirection.Arrow"),
 		bDebugActorDirectionArrow,
 		TEXT("Draw PINK debug arrow showing the direction the actor rotation is facing"),
 		ECVF_Default);
 
 	static bool bDebugControlDirectionArrow = false;
-	FAutoConsoleVariableRef CVarDebugControlDirectionArrow(
+	static FAutoConsoleVariableRef CVarDebugControlDirectionArrow(
 		TEXT("p.Turn.Debug.ControlDirection.Arrow"),
 		bDebugControlDirectionArrow,
 		TEXT("Draw BLACK debug arrow showing the direction the control rotation is facing"),
@@ -126,7 +126,7 @@ namespace TurnInPlaceCvars
 
 #if !UE_BUILD_SHIPPING
 	static int32 OverrideTurnInPlace = 0;
-	FAutoConsoleVariableRef CVarOverrideTurnInPlace(
+	static FAutoConsoleVariableRef CVarOverrideTurnInPlace(
 		TEXT("p.Turn.Override"),
 		OverrideTurnInPlace,
 		TEXT("Override Turn In Place. 0 = Default, 1 = Force Enabled, 2 = Force Locked, 3 = Force Paused (Disabled)"),
@@ -647,11 +647,20 @@ void UTurnInPlace::TurnInPlace(const FRotator& CurrentRotation, const FRotator& 
 	const bool bEnabled = State != ETurnInPlaceEnabledState::Locked;
 	if (!bEnabled)
 	{
-		TurnData = {};
-		if (!bClientSimulation)
+		/**
+		 * A simulated proxy must never discard TurnOffset: it is replicated, and replication only resends the
+		 * property when the server's value changes. The locked state here is evaluated from local, non-authoritative
+		 * signals (this proxy's own lock curve, its montage state, gameplay tags that replicate on their own
+		 * schedule), so a lock the server never saw would strand the proxy at zero until the server's offset
+		 * happens to move again, which it does not while the player holds a steady offset.
+		 */
+		if (bClientSimulation)
 		{
-			ApplyGravityVertical(CurrentRotation, 0.f);
+			return;
 		}
+
+		TurnData = {};
+		ApplyGravityVertical(CurrentRotation, 0.f);
 		return;
 	}
 
@@ -1039,7 +1048,7 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 
 			// SetupTurnInPlace()
 			PseudoNodeData.AnimStateTime = 0.f;
-			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation_AnimSet(AnimSet, PseudoNodeData, false);
 			PseudoNodeData.bHasReachedMaxTurnAngle = false;
 			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnAnimData, AnimSet);
 		}
@@ -1059,12 +1068,12 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 
 			// SetupTurnRecovery() -- AnimStateTime is already carried over from TurnInPlace
 			PseudoNodeData.bIsRecoveryTurningRight = PseudoNodeData.bIsTurningRight;
-			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation_AnimSet(AnimSet, PseudoNodeData, true);
 		}
 		else
 		{
 			// UpdateTurnInPlace()
-			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, false);
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation_AnimSet(AnimSet, PseudoNodeData, false);
 			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
 				PseudoNodeData.AnimStateTime, DeltaTime, PseudoNodeData.TurnPlayRate);
 			UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(PseudoNodeData, TurnAnimData, AnimSet);
@@ -1073,7 +1082,7 @@ void UTurnInPlace::UpdatePseudoAnimState(float DeltaTime, const FTurnInPlaceAnim
 	case ETurnPseudoAnimState::Recovery:
 		{
 			// UpdateTurnInPlaceRecovery()
-			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation(AnimSet, PseudoNodeData, true);
+			PseudoAnim = UTurnInPlaceStatics::GetTurnInPlaceAnimation_AnimSet(AnimSet, PseudoNodeData, true);
 			PseudoNodeData.AnimStateTime = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(PseudoAnim,
 				PseudoNodeData.AnimStateTime, DeltaTime, 1.f);  // Recovery plays at 1x speed
 			if (!PseudoAnim || (PseudoAnim && PseudoNodeData.AnimStateTime >= PseudoAnim->GetPlayLength()))

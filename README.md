@@ -82,6 +82,15 @@ There is too much in the anim graph that goes into building the system Lyra uses
 
 # Changelog
 
+### 1.8.0
+***WARNING: UPDATE YOUR CONTENT, ANIM GRAPHS, ANIM INSTANCE***
+
+_Requires >=UE5.8_
+
+* Greatly condensed logic into static functions where possible
+* Fix major bug where unable to leave TurnInPlace state
+* Fix sim proxies often not evaluating TurnInPlace state consistently
+
 ### 1.7.2
 * Add `GameplayTagFilter` for `TurnAngles` to fix nested struct filtering
 

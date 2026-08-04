@@ -106,42 +106,51 @@ void UTurnInPlaceStatics::DebugTurnInPlace(UObject* WorldContextObject, bool bDe
 #endif
 }
 
-UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation(const FTurnInPlaceAnimSet& AnimSet,
-	const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery)
+UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation(const FTurnInPlaceAnimCache& Cache, bool bRecovery)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::GetTurnInPlaceAnimation);
+	
+	const bool bTurnRight = bRecovery ? Cache.NodeData.bIsRecoveryTurningRight : Cache.NodeData.bIsTurningRight;
+	const TArray<UAnimSequence*>& TurnAnimations = bTurnRight ? Cache.AnimData.AnimSet.RightTurns : Cache.AnimData.AnimSet.LeftTurns;
+	return TurnAnimations.IsValidIndex(Cache.NodeData.StepSize) ? TurnAnimations[Cache.NodeData.StepSize] : nullptr;
+}
+
+UAnimSequence* UTurnInPlaceStatics::GetTurnInPlaceAnimation_AnimSet(const FTurnInPlaceAnimSet& AnimSet, const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::GetTurnInPlaceAnimation_NodeData);
 	
 	const bool bTurnRight = bRecovery ? NodeData.bIsRecoveryTurningRight : NodeData.bIsTurningRight;
 	const TArray<UAnimSequence*>& TurnAnimations = bTurnRight ? AnimSet.RightTurns : AnimSet.LeftTurns;
 	return TurnAnimations.IsValidIndex(NodeData.StepSize) ? TurnAnimations[NodeData.StepSize] : nullptr;
 }
 
-void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime,
-	FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, FTurnInPlaceAnimGraphOutput& Output,
-	bool& bCanUpdateTurnInPlace)
+void UTurnInPlaceStatics::UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, FTurnInPlaceAnimCache& Cache, bool bIsStrafing, float& TurnOffset)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace_Entry);
 	
-	AnimGraphData = FTurnInPlaceAnimGraphData();
-	bCanUpdateTurnInPlace = false;
+	Cache.AnimData = FTurnInPlaceAnimGraphData();
+	Cache.bCanUpdate = false;
 	
 	if (!TurnInPlace || !TurnInPlace->HasValidData())
 	{
+		TurnOffset = 0.f;
 		return;
 	}
 
 	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::UpdateTurnInPlace);
 	
-	AnimGraphData = TurnInPlace->UpdateAnimGraphData(DeltaTime);
-	bCanUpdateTurnInPlace = true;
+	Cache.AnimData = TurnInPlace->UpdateAnimGraphData(DeltaTime);
+	Cache.bCanUpdate = true;
 
 	// The pseudo anim state needs to update here
-	if (AnimGraphData.bWantsPseudoAnimState)
+	if (Cache.AnimData.bWantsPseudoAnimState)
 	{
-		ThreadSafeUpdateTurnInPlace_Internal(AnimGraphData, bCanUpdateTurnInPlace, bIsStrafing, Output);
+		ThreadSafeUpdateTurnInPlace_Internal(Cache.AnimData, Cache.bCanUpdate, bIsStrafing, Cache.AnimOutput);
 	}
 
-	TurnInPlace->PostUpdateAnimGraphData(DeltaTime, AnimGraphData, Output);
+	TurnInPlace->PostUpdateAnimGraphData(DeltaTime, Cache.AnimData, Cache.AnimOutput);
+	
+	TurnOffset = TurnInPlace->GetTurnOffset();
 }
 
 void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlace(const FTurnInPlaceAnimGraphData& AnimGraphData,
@@ -207,6 +216,41 @@ FTurnInPlaceCurveValues UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceCurveVal
 	return CurveValues;
 }
 
+void UTurnInPlaceStatics::ThreadSafeTurnInPlace(const UAnimInstance* AnimInstance, const UTurnInPlace* TurnInPlace, FTurnInPlaceAnimCache& Cache, bool bIsStrafing)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(UTurnInPlaceStatics::ThreadSafeTurnInPlace);
+
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	// Cache curve values in the worker thread at the same point where the anim state is determined. The game thread
+	// can then request these values; querying them at a different time yields a different state and the anim state
+	// becomes unreliable.
+	Cache.CurveValues = ThreadSafeUpdateTurnInPlaceCurveValues(AnimInstance, Cache.AnimData);
+
+	// Refresh bIsTurning and drive the bWasTurningThisEntry latch using the curves we just cached. UpdateTurnInPlace
+	// runs on the game thread before this worker pass, so its bIsTurning reflects curves from two frames ago;
+	// without this refresh the state machine downstream sees stale data and fires bWantsTurnRecovery on the entry
+	// frame of TurnInPlace.
+	if (TurnInPlace)
+	{
+		TurnInPlace->ThreadSafeRefreshAnimGraphData(Cache.AnimData, Cache.CurveValues, Cache.bWasTurningThisEntry);
+	}
+	else
+	{
+		Cache.AnimData.bWasTurningThisEntry = Cache.bWasTurningThisEntry;
+	}
+
+	// Carry the persistent "turn anim fully played" flag (maintained on the node data by the TurnInPlace state's
+	// update function, which survives the per-frame rebuild of AnimGraphData) so the recovery transition can still
+	// fire even if a turn finishes without ever registering as turning.
+	Cache.AnimData.bTurnAnimReachedEnd = Cache.NodeData.bReachedAnimEnd;
+
+	ThreadSafeUpdateTurnInPlace(Cache.AnimData, Cache.bCanUpdate, bIsStrafing, Cache.AnimOutput);
+}
+
 void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(FTurnInPlaceGraphNodeData& NodeData,
 	const FTurnInPlaceAnimGraphData& AnimGraphData, const FTurnInPlaceAnimSet& AnimSet)
 {
@@ -217,4 +261,67 @@ void UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(FTurnInPlaceGraphNodeD
 	bool bHasReachedMaxAngle;
 	NodeData.TurnPlayRate = GetTurnInPlacePlayRate_ThreadSafe(AnimGraphData, NodeData.bHasReachedMaxTurnAngle, bHasReachedMaxAngle);
 	NodeData.bHasReachedMaxTurnAngle = AnimSet.bMaintainMaxAnglePlayRate && bHasReachedMaxAngle;
+}
+
+void UTurnInPlaceStatics::Setup_TurnIdle_Pose(FTurnInPlaceAnimCache& Cache)
+{
+	Cache.NodeData.bHasReachedMaxTurnAngle = false;
+	Cache.NodeData.TurnPlayRate = 1.f;
+}
+
+void UTurnInPlaceStatics::Setup_TurnInPlace_Pose(FTurnInPlaceAnimCache& Cache)
+{
+	// This function always occurs prior to the sequence evaluator's OnBecomeRelevant
+	// This is because it parses the nodes based on their links so we can be sure these are set prior to the evaluator running its logic
+
+	Cache.NodeData.StepSize = Cache.AnimData.StepSize;
+	Cache.NodeData.bIsTurningRight = Cache.AnimData.bTurnRight;
+
+	// Reset the entry latch so the next worker pass can re-latch it from the just-entered turn anim's curves.
+	// This is what prevents premature TurnInPlace -> TurnRecovery transitions caused by curve staleness.
+	Cache.bWasTurningThisEntry = false;
+}
+
+void UTurnInPlaceStatics::Setup_TurnInPlace_Anim(FTurnInPlaceAnimCache& Cache)
+{
+	// We dumped the previous turn state due to inertialization, so using Set Sequence here will not cause the
+	// pre-existing turn animation to snap when repeating this state rapidly
+
+	Cache.NodeData.AnimStateTime = 0.f;
+	Cache.NodeData.bHasReachedMaxTurnAngle = false;
+	Cache.NodeData.bReachedAnimEnd = false;
+	
+	ThreadSafeUpdateTurnInPlaceNode(Cache.NodeData, Cache.AnimData, Cache.AnimData.AnimSet);
+}
+
+float UTurnInPlaceStatics::Update_TurnInPlace_Anim(FTurnInPlaceAnimCache& Cache, UAnimSequence* TurnAnim, float DeltaTime)
+{
+	if (!TurnAnim)
+	{
+		Cache.NodeData.AnimStateTime = 0.f;
+		Cache.NodeData.bReachedAnimEnd = true;
+		return 0.f;
+	}
+	
+	// Even though we use Set Sequence in setup we need to allow changing mid-turn due to potential stance changes
+	// updating the current turn animation (e.g. from stand turn to crouch turn)
+
+	const float Time = GetUpdatedTurnInPlaceAnimTime_ThreadSafe(TurnAnim, Cache.NodeData.AnimStateTime,
+		DeltaTime, Cache.NodeData.TurnPlayRate);
+
+	Cache.NodeData.AnimStateTime = Time;
+	
+	// Flag when the turn animation has fully played out. This lets the recovery transition fire even if
+	// bWasTurningThisEntry never latched (e.g. the turn-yaw-weight curve never registered this entry), which
+	// otherwise leaves the character permanently stuck at the end of the turn animation.
+	Cache.NodeData.bReachedAnimEnd = TurnAnim && (Time >= TurnAnim->GetPlayLength() - UE_KINDA_SMALL_NUMBER);
+
+	ThreadSafeUpdateTurnInPlaceNode(Cache.NodeData, Cache.AnimData, Cache.AnimData.AnimSet);
+	
+	return Time;
+}
+
+void UTurnInPlaceStatics::Setup_TurnRecovery_Pose(FTurnInPlaceAnimCache& Cache)
+{
+	Cache.NodeData.bIsRecoveryTurningRight = Cache.NodeData.bIsTurningRight;
 }

@@ -12,49 +12,72 @@
  * _POSE functions go on the OutputAnimationPose node
  * _ANIM functions go on the SequencePlayer or SequenceEvaluator nodes
 
-UAnimSequence* GetTurnInPlaceAnim(bool bRecovery)
+*******************************************
+
+MyAnimInstance.h
+
+UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+float TurnOffset = 0.f;
+
+UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+FTurnInPlaceAnimCache TurnCache;
+
+UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Transition)
+bool bStartToRun = false;
+
+UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Transition)
+bool bStopToIdle = false;
+
+*******************************************
+
+void UMyAnimInstance::NativeUpdateAnimation(float DeltaTime)
 {
-	return UTurnInPlaceStatics::GetTurnInPlaceAnimation(TurnData.AnimSet, TurnNodeData, bRecovery);
+	UTurnInPlaceStatics::UpdateTurnInPlace(TurnInPlace, DeltaTime, TurnCache, bIsStrafing, TurnOffset);
+}
+
+void UMyAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaTime)
+{
+	UTurnInPlaceStatics::ThreadSafeTurnInPlace(this, TurnInPlace, TurnCache, bIsStrafing);
+	
+	// Recommended transition logic (as well as whatever you already have)
+	bStartToRun = FMath::Abs(TurnOffset) > TurnCache.AnimData.TurnAngles.MinTurnAngle;
+	bStopToIdle = bStanceChanged || TurnCache.AnimData.bIsTurning || TurnCache.AnimData.bWantsToTurn;
+}
+
+FTurnInPlaceCurveValues UMyAnimInstance::GetTurnInPlaceCurveValues_Implementation() const
+{
+	return TurnCache.CurveValues;
+}
+
+*******************************************
+
+static UAnimSequence* GetTurnInPlaceAnim(bool bRecovery)
+{
+	return UTurnInPlaceStatics::GetTurnInPlaceAnimation(TurnCache, bRecovery);
 }
 
 void UMyAnimLayer::Setup_Idle_Pose(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
 	if (!CanUpdateAnimGraph()) { return; }
 
-	Main()->TurnNodeData.bHasReachedMaxTurnAngle = false;
-	Main()->TurnNodeData.TurnPlayRate = 1.f;
+	UTurnInPlaceStatics::Setup_TurnIdle_Pose(TurnCache);
 }
 
 void UMyAnimLayer::Setup_TurnInPlace_Pose(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
-	// This function always occurs prior to the sequence evaluator's OnBecomeRelevant
-	// This is because it parses the nodes based on their links so we can be sure these are set prior to the evaluator running its logic
-
-	TurnNodeData.StepSize = TurnData.StepSize;
-	TurnNodeData.bIsTurningRight = TurnData.bTurnRight;
-
-	// Reset the entry latch so the next worker pass can re-latch it from the just-entered turn anim's curves.
-	// This is what prevents premature TurnInPlace -> TurnRecovery transitions caused by curve staleness.
-	bWasTurningThisEntry = false;
+	UTurnInPlaceStatics::Setup_TurnInPlace_Pose(TurnCache);
 }
 
 void UMyAnimLayer::Setup_TurnInPlace_Anim(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
-	// We dumped the previous turn state due to inertialization, so using Set Sequence here will not cause the
-	// pre-existing turn animation to snap when repeating this state rapidly
-
-	TurnNodeData.AnimStateTime = 0.f;
-	TurnNodeData.bHasReachedMaxTurnAngle = false;
-	TurnNodeData.bReachedAnimEnd = false;
+	UTurnInPlaceStatics::Setup_TurnInPlace_Anim(TurnCache);
 
 	constexpr bool bRecovery = false;
 	UAnimSequence* A = GetTurnInPlaceAnim(bRecovery);
-	
+
 	const auto& R = NodeType<FSequenceEvaluatorReference>(Node);
 	USequenceEvaluatorLibrary::SetSequence(R, A);
 	USequenceEvaluatorLibrary::SetExplicitTime(R, 0.f);
-
-	UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(TurnNodeData, TurnData, TurnData.AnimSet);
 }
 
 void UMyAnimLayer::Update_TurnInPlace_Anim(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
@@ -68,23 +91,15 @@ void UMyAnimLayer::Update_TurnInPlace_Anim(const FAnimUpdateContext& Context, co
 	const auto& R = NodeType<FSequenceEvaluatorReference>(Node);
 	USequenceEvaluatorLibrary::SetSequenceWithInertialBlending(Context, R, A, 0.2f);
 
-	const float Time = UTurnInPlaceStatics::GetUpdatedTurnInPlaceAnimTime_ThreadSafe(A, TurnNodeData.AnimStateTime,
-		Context.GetContext()->GetDeltaTime(), TurnNodeData.TurnPlayRate);
-
-	TurnNodeData.AnimStateTime = Time;
+	// The returned time MUST be applied to the evaluator, or the turn animation never advances and the character
+	// will not turn at all
+	const float Time = UTurnInPlaceStatics::Update_TurnInPlace_Anim(TurnCache, A, Context.GetContext()->GetDeltaTime());
 	USequenceEvaluatorLibrary::SetExplicitTime(R, Time);
-
-	// Flag when the turn animation has fully played out. This lets the recovery transition fire even if
-	// bWasTurningThisEntry never latched (e.g. the turn-yaw-weight curve never registered this entry), which
-	// otherwise leaves the character permanently stuck at the end of the turn animation.
-	TurnNodeData.bReachedAnimEnd = A && (Time >= A->GetPlayLength() - UE_KINDA_SMALL_NUMBER);
-
-	UTurnInPlaceStatics::ThreadSafeUpdateTurnInPlaceNode(TurnNodeData, TurnData, TurnData.AnimSet);
 }
 
 void UMyAnimLayer::Setup_TurnRecovery_Pose(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
 {
-	TurnNodeData.bIsRecoveryTurningRight = TurnNodeData.bIsTurningRight;
+	UTurnInPlaceStatics::Setup_TurnRecovery_Pose(TurnCache);
 }
 
 void UMyAnimLayer::Update_TurnRecovery_Anim(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)

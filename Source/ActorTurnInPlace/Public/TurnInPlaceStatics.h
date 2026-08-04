@@ -8,6 +8,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "TurnInPlaceStatics.generated.h"
 
+struct FAnimNodeReference;
+struct FAnimUpdateContext;
 class UTurnInPlace;
 
 /**
@@ -74,21 +76,22 @@ public:
 	static void DebugTurnInPlace(UObject* WorldContextObject, bool bDebug);
 
 	UFUNCTION(BlueprintPure, Category=Animation, meta=(BlueprintThreadSafe))
-	static UAnimSequence* GetTurnInPlaceAnimation(const FTurnInPlaceAnimSet& AnimSet, const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery = false);
+	static UAnimSequence* GetTurnInPlaceAnimation(const FTurnInPlaceAnimCache& Cache, bool bRecovery = false);
+	
+	UFUNCTION(BlueprintPure, Category=Animation, meta=(BlueprintThreadSafe, DisplayName="Get Turn In Place Animation (Anim Set)"))
+	static UAnimSequence* GetTurnInPlaceAnimation_AnimSet(const FTurnInPlaceAnimSet& AnimSet, const FTurnInPlaceGraphNodeData& NodeData, bool bRecovery = false);
 	
 public:
 	/**
 	 * Update anim graph data for turn in place by retrieving data from the game thread. Call from NativeUpdateAnimation or BlueprintUpdateAnimation.
 	 * @param TurnInPlace The turn in place component
 	 * @param DeltaTime The delta time for this frame
-	 * @param AnimGraphData The anim graph data for this frame
+	 * @param Cache Cached turn in place anim data (stored on anim graph)
 	 * @param bIsStrafing True if the character is strafing
-	 * @param Output The output data for the anim graph, ONLY VALID IF DEDICATED SERVER and updating from pseudo anim state
-	 * @param bCanUpdateTurnInPlace True if the turn in place is valid, false if we should not process turn in place this frame
+	 * @param TurnOffset Resulting TurnOffset from the TurnInPlace component
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(NotBlueprintThreadSafe, DisplayName="Update Turn In Place"))
-	static void UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, FTurnInPlaceAnimGraphData& AnimGraphData, bool bIsStrafing, 
-		FTurnInPlaceAnimGraphOutput& Output, bool& bCanUpdateTurnInPlace);
+	static void UpdateTurnInPlace(UTurnInPlace* TurnInPlace, float DeltaTime, UPARAM(ref) FTurnInPlaceAnimCache& Cache, bool bIsStrafing, float& TurnOffset);
 
 	/**
 	 * Process anim graph data that was retrieved from the game thread. Call from NativeThreadSafeUpdateAnimation or BlueprintThreadSafeUpdateAnimation.
@@ -117,9 +120,45 @@ public:
 	static FTurnInPlaceCurveValues ThreadSafeUpdateTurnInPlaceCurveValues(const UAnimInstance* AnimInstance, const FTurnInPlaceAnimGraphData& AnimGraphData);
 
 	/**
+	 * The entire worker thread half of turn in place in one call: caches curve values, refreshes the state-derived
+	 * anim graph data against them, latches bWasTurningThisEntry, carries the turn-anim-reached-end flag across,
+	 * and produces the anim graph output. Call from NativeThreadSafeUpdateAnimation or
+	 * BlueprintThreadSafeUpdateAnimation, after UpdateTurnInPlace has run on the game thread.
+	 *
+	 * Equivalent to ThreadSafeUpdateTurnInPlaceCurveValues + UTurnInPlace::ThreadSafeRefreshAnimGraphData +
+	 * ThreadSafeUpdateTurnInPlace. Blueprint cannot read a UTurnInPlace property off the game thread, so the
+	 * refresh step is only reachable from a thread safe graph through this function.
+	 *
+	 * @param AnimInstance The anim instance to request curve values from
+	 * @param TurnInPlace The turn in place component
+	 * @param Cache Cached turn in place anim data (stored on anim graph)
+	 * @param bIsStrafing True if the character is strafing - bTransitionStartToCycleFromTurn is strafe only
+	 */
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DefaultToSelf="AnimInstance", DisplayName="Thread Safe Turn In Place"))
+	static void ThreadSafeTurnInPlace(const UAnimInstance* AnimInstance, const UTurnInPlace* TurnInPlace,
+		UPARAM(ref)FTurnInPlaceAnimCache& Cache, bool bIsStrafing);
+
+	/**
 	 * Call from TurnInPlace Node Update Function
 	 */
 	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe, DisplayName="Thread Safe Update Turn In Place Node"))
 	static void ThreadSafeUpdateTurnInPlaceNode(UPARAM(ref)FTurnInPlaceGraphNodeData& NodeData, const FTurnInPlaceAnimGraphData& AnimGraphData, const
 		FTurnInPlaceAnimSet& AnimSet);
+	
+public:
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
+	static void Setup_TurnIdle_Pose(UPARAM(ref) FTurnInPlaceAnimCache& Cache);
+	
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
+	static void Setup_TurnInPlace_Pose(UPARAM(ref) FTurnInPlaceAnimCache& Cache);
+	
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
+	static void Setup_TurnInPlace_Anim(UPARAM(ref) FTurnInPlaceAnimCache& Cache);
+	
+	/** @return Time to set SequenceEvaluator ExplicitTime to */
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
+	static float Update_TurnInPlace_Anim(UPARAM(ref) FTurnInPlaceAnimCache& Cache, UAnimSequence* TurnAnim, float DeltaTime);
+	
+	UFUNCTION(BlueprintCallable, Category=Turn, meta=(BlueprintThreadSafe))
+	static void Setup_TurnRecovery_Pose(UPARAM(ref) FTurnInPlaceAnimCache& Cache);
 };

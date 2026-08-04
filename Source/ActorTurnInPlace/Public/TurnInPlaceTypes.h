@@ -652,3 +652,32 @@ struct ACTORTURNINPLACE_API FTurnInPlaceGraphNodeData
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
 	bool bReachedAnimEnd;
 };
+
+USTRUCT(BlueprintType)
+struct ACTORTURNINPLACE_API FTurnInPlaceAnimCache
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	FTurnInPlaceAnimGraphData AnimData;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	FTurnInPlaceCurveValues CurveValues;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	FTurnInPlaceAnimGraphOutput AnimOutput;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	FTurnInPlaceGraphNodeData NodeData;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Turn)
+	bool bCanUpdate = false;
+
+	/**
+	 * Latched true on the worker thread once TurnYawWeight has been observed > 0 since the last entry into
+	 * TurnInPlace. Reset by the anim graph in Setup_TurnInPlace_Pose. Gates bWantsTurnRecovery so the recovery
+	 * transition cannot fire on the entry frame while curve values are still stale from the prior state.
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Turn)
+	bool bWasTurningThisEntry = false;
+};
