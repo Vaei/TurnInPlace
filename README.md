@@ -9,7 +9,7 @@
 > <br>Install this as a project plugin, not an engine plugin
 
 > [!TIP]
-> Supports UE5.4+
+> Supports UE5.8+
 
 > [!NOTE]
 > [Read the Wiki for Instructions and Complete Features!](https://github.com/Vaei/TurnInPlace/wiki/How-to-Use)
