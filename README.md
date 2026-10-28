@@ -1,5 +1,7 @@
 # Actor Turn In Place <img align="right" width=128, height=128 src="https://github.com/Vaei/TurnInPlace/blob/main/Resources/Icon128.png">
 
+_From the same author: [Lila](https://lila-3d.github.io/)_
+
 > [!IMPORTANT]
 > Actor-Based Turn in Place (TIP) Solution. A superior substitute to Mesh-Based Turn in Place without the endless list of issues that comes with it.
 
